@@ -61,8 +61,6 @@ pub enum TokenKind {
     At,
     /// `#`
     Pound,
-    /// `~`
-    Tilde,
     /// `?`
     Question,
     /// `:`
