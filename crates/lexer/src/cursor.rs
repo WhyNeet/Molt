@@ -120,13 +120,31 @@ impl<'a> Cursor<'a> {
             '?' => TokenKind::Question,
             ':' => TokenKind::Colon,
             '$' => TokenKind::Dollar,
-            '=' => TokenKind::Eq,
-            '!' => TokenKind::Bang,
-            '<' => TokenKind::Lt,
-            '>' => TokenKind::Gt,
+            '=' => match self.peek() {
+                '=' => TokenKind::EqEq,
+                _ => TokenKind::Eq,
+            },
+            '!' => match self.peek() {
+                '=' => TokenKind::Ne,
+                _ => TokenKind::Bang,
+            },
+            '<' => match self.peek() {
+                '=' => TokenKind::Le,
+                _ => TokenKind::Lt,
+            },
+            '>' => match self.peek() {
+                '=' => TokenKind::Ge,
+                _ => TokenKind::Gt,
+            },
             '-' => TokenKind::Minus,
-            '&' => TokenKind::And,
-            '|' => TokenKind::Or,
+            '&' => match self.peek() {
+                '&' => TokenKind::AndAnd,
+                _ => TokenKind::And,
+            },
+            '|' => match self.peek() {
+                '|' => TokenKind::OrOr,
+                _ => TokenKind::Or,
+            },
             '+' => TokenKind::Plus,
             '*' => TokenKind::Star,
             '^' => TokenKind::Caret,

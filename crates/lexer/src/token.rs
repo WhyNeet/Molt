@@ -92,6 +92,19 @@ pub enum TokenKind {
     /// `%`
     Percent,
 
+    /// `<=`
+    Le,
+    /// `>=`
+    Ge,
+    /// `==`
+    EqEq,
+    /// `!=`
+    Ne,
+    /// `&&`
+    AndAnd,
+    /// '||'
+    OrOr,
+
     /// Unknown token, not expected by the lexer, e.g. "№"
     Unknown,
 
