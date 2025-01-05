@@ -1,6 +1,8 @@
+pub mod token;
+
 use std::str::Chars;
 
-use crate::token::{Base, LiteralKind, Token, TokenKind};
+use token::{Base, LiteralKind, Token, TokenKind};
 
 const EOF_CHAR: char = '\0';
 
@@ -17,6 +19,19 @@ impl<'a> Cursor<'a> {
             chars: input.chars(),
             prev: None,
         }
+    }
+
+    /// Creates an iterator that produces tokens from the input string.
+    pub fn tokenize(input: &str) -> impl Iterator<Item = Token> + '_ {
+        let mut cursor = Cursor::new(input);
+        std::iter::from_fn(move || {
+            let token = cursor.advance_token();
+            if token.kind != TokenKind::Eof {
+                Some(token)
+            } else {
+                None
+            }
+        })
     }
 
     pub fn advance(&mut self) -> char {
@@ -82,7 +97,7 @@ pub fn is_whitespace(c: char) -> bool {
 }
 
 impl<'a> Cursor<'a> {
-    fn advance_token(&mut self) -> Token {
+    pub(crate) fn advance_token(&mut self) -> Token {
         let first_char = match self.advance() {
             EOF_CHAR => return Token::new(TokenKind::Eof, 0),
             char => char,
@@ -115,7 +130,13 @@ impl<'a> Cursor<'a> {
             '}' => TokenKind::CloseBrace,
             '[' => TokenKind::OpenBracket,
             ']' => TokenKind::CloseBracket,
-            '@' => TokenKind::At,
+            '@' => match self.peek() {
+                char if is_ident_start(char) => {
+                    self.consume_identifier();
+                    TokenKind::Annotation
+                }
+                _ => TokenKind::At,
+            },
             '#' => TokenKind::Pound,
             '?' => TokenKind::Question,
             ':' => TokenKind::Colon,
@@ -179,6 +200,10 @@ impl<'a> Cursor<'a> {
 
             c if is_whitespace(c) => self.whitespace(),
             c if !c.is_ascii() => TokenKind::InvalidIdent,
+            '\n' => {
+                self.advance();
+                TokenKind::NewLine
+            }
             _ => TokenKind::Unknown,
         };
 
@@ -381,17 +406,4 @@ impl<'a> Cursor<'a> {
             self.advance();
         }
     }
-}
-
-/// Creates an iterator that produces tokens from the input string.
-pub fn tokenize(input: &str) -> impl Iterator<Item = Token> + '_ {
-    let mut cursor = Cursor::new(input);
-    std::iter::from_fn(move || {
-        let token = cursor.advance_token();
-        if token.kind != TokenKind::Eof {
-            Some(token)
-        } else {
-            None
-        }
-    })
 }

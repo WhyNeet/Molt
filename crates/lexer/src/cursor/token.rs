@@ -23,8 +23,14 @@ pub enum TokenKind {
     /// Any whitespace character sequence.
     Whitespace,
 
+    /// `\n`
+    NewLine,
+
     /// An identifier or keyword, e.g. `ident` or `continue`.
     Ident,
+
+    /// `@main`, `@effect`, ...
+    Annotation,
 
     /// An identifier that is invalid because it contains emoji.
     InvalidIdent,

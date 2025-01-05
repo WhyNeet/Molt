@@ -1,12 +1,12 @@
-use lexer::{
-    cursor::tokenize,
+use lexer::cursor::{
     token::{Base, LiteralKind, Token, TokenKind},
+    Cursor,
 };
 
 #[test]
 fn numbers_work() {
     let input = r#"let x = 0b101;"#;
-    let res = tokenize(input).collect::<Vec<Token>>();
+    let res = Cursor::tokenize(input).collect::<Vec<Token>>();
 
     assert_eq!(res[0].kind, TokenKind::Ident);
     assert_eq!(res[0].len, 3);
