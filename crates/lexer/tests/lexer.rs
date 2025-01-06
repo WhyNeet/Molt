@@ -1,4 +1,5 @@
 use lexer::scanner::{
+    keywords::Keyword,
     token::{Base, Literal, LiteralKind, Token, TokenKind},
     Scanner,
 };
@@ -8,7 +9,7 @@ fn numbers_work() {
     let input = r#"let x = 0o6u32;"#;
     let tokens = Scanner::tokenize(input).collect::<Vec<Token>>();
 
-    assert_eq!(tokens[0].kind, TokenKind::Ident("let".to_string()));
+    assert_eq!(tokens[0].kind, TokenKind::Keyword(Keyword::Let));
 
     assert_eq!(tokens[1].kind, TokenKind::Ident("x".to_string()));
 
@@ -34,7 +35,7 @@ fn strings_work() {
     let input = r#"let x = "hello world!";"#;
     let tokens = Scanner::tokenize(input).collect::<Vec<Token>>();
 
-    assert_eq!(tokens[0].kind, TokenKind::Ident("let".to_string()));
+    assert_eq!(tokens[0].kind, TokenKind::Keyword(Keyword::Let));
 
     assert_eq!(tokens[1].kind, TokenKind::Ident("x".to_string()));
 
@@ -59,7 +60,7 @@ fn annotations_work() {
 
     assert_eq!(tokens[0].kind, TokenKind::Annotation("@main".to_string()));
 
-    assert_eq!(tokens[1].kind, TokenKind::Ident("fun".to_string()));
+    assert_eq!(tokens[1].kind, TokenKind::Keyword(Keyword::Fun));
 
     assert_eq!(tokens[2].kind, TokenKind::Ident("main".to_string()));
 
