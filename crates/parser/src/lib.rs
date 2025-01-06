@@ -39,6 +39,17 @@ impl Parser {
     }
 
     fn declaration(&mut self) -> Statement {
+        let mut annotations = vec![];
+
+        while let Some(annotation) = self.matches(TokenKind::Annotation(String::new())) {
+            let annotation = match &annotation.kind {
+                TokenKind::Annotation(annotation) => annotation.to_string(),
+                _ => unreachable!(),
+            };
+
+            annotations.push(annotation);
+        }
+
         if let Some(keyword) = self.matches(TokenKind::Keyword(Keyword::Fun)) {
             let keyword = match keyword.kind {
                 TokenKind::Keyword(keyword) => keyword,
@@ -46,7 +57,7 @@ impl Parser {
             };
 
             match keyword {
-                Keyword::Let => self.var_decl(),
+                Keyword::Let => self.var_decl(annotations),
                 _ => todo!(),
             }
         } else {
@@ -54,7 +65,7 @@ impl Parser {
         }
     }
 
-    fn var_decl(&mut self) -> Statement {
+    fn var_decl(&mut self, annotations: Vec<String>) -> Statement {
         let identifier = self
             .matches(TokenKind::Ident(String::new()))
             .expect("expected identifier.");
@@ -77,7 +88,7 @@ impl Parser {
         Statement::VariableDeclaration {
             name: identifier,
             expr: expression,
-            annotations: vec![],
+            annotations,
         }
     }
 

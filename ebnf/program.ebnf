@@ -2,8 +2,8 @@ program = { statement } ;
 
 statement = declStmt | exprStmt ;
 
-declStmt = varDecl | funDecl ;
-varDecl = { annotation } "let" IDENTIFIER "=" expression ";" ;
+declStmt = { annotation " " } varDecl | funDecl ;
+varDecl = "let" IDENTIFIER "=" expression ";" ;
 
 exprStmt = expression ";" ;
 
