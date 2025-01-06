@@ -1,8 +1,10 @@
 program = { statement } ;
 
-statement = varDecl | exprStmt ;
+statement = declStmt | exprStmt ;
+
+declStmt = varDecl | funDecl ;
+varDecl = { annotation } "let" IDENTIFIER "=" expression ";" ;
 
 exprStmt = expression ";" ;
-varDecl = [ annotation ] "let" IDENTIFIER "=" expression ";" ;
 
 annotation = "@" STRING ;
