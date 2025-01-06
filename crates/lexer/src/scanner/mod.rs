@@ -1,7 +1,6 @@
+pub mod iter;
 pub mod keywords;
 pub mod token;
-
-use std::str::Chars;
 
 use keywords::Keyword;
 use token::{Base, Literal, LiteralKind, Token, TokenKind};
@@ -131,7 +130,7 @@ pub fn is_whitespace(c: char) -> bool {
 }
 
 impl<'a> Scanner<'a> {
-    pub(crate) fn advance_token(&mut self) -> Token {
+    pub fn advance_token(&mut self) -> Token {
         let (kind, line, col) = self.scan_token();
 
         Token { kind, col, line }
