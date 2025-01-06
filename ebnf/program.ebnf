@@ -6,7 +6,7 @@ declStmt = { annotation " " } varDecl | funDecl ;
 
 varDecl = "let" IDENTIFIER "=" expression ";" ;
 
-funDecl = "fun" IDENTIFIER "(" [ parameters ] ")" [ "->" TYPE ] "{" program "}" ;
+funDecl = "fun" IDENTIFIER "(" [ parameters ] ")" [ "->" TYPE ] ( "=" expression | ";" ) ;
 parameters = IDENTIFIER ":" TYPE { "," IDENTIFIER ":" TYPE } ;
 
 exprStmt = expression ";" ;

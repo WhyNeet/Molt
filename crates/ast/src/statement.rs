@@ -13,7 +13,9 @@ pub enum Statement {
     },
     FunctionDeclaration {
         name: String,
-        block: Expression,
+        block: Option<Expression>,
         return_type: Type,
+        parameters: Vec<(String, Type)>,
+        annotations: Vec<String>,
     },
 }
