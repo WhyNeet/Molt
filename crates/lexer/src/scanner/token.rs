@@ -4,46 +4,28 @@
 #[derive(Debug)]
 pub struct Token {
     pub kind: TokenKind,
-    pub len: u32,
+    pub line: usize,
+    pub col: usize,
 }
 
-impl Token {
-    pub(crate) fn new(kind: TokenKind, len: u32) -> Token {
-        Token { kind, len }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenKind {
     /// Comment surrounded by /* */
     BlockComment { terminated: bool },
     /// Comment after //
     LineComment,
 
-    /// Any whitespace character sequence.
-    Whitespace,
-
-    /// `\n`
-    NewLine,
-
     /// An identifier or keyword, e.g. `ident` or `continue`.
-    Ident,
+    Ident(String),
 
-    /// `@main`, `@effect`, ...
-    Annotation,
+    /// A compiler annotation, e.g. `@main`, `@effect`, ...
+    Annotation(String),
 
-    /// An identifier that is invalid because it contains emoji.
-    InvalidIdent,
+    /// Literals, e.g. `12u8`, `1.0e-40`, `b"123"`.
+    Literal(Literal),
 
-    /// Literals, e.g. `12u8`, `1.0e-40`, `b"123"`. Note that `_` is an invalid
-    /// suffix, but may be present here on string and float literals. Users of
-    /// this type will need to check for and reject that case.
-    ///
-    /// See [LiteralKind] for more details.
-    Literal {
-        kind: LiteralKind,
-        suffix_start: u32,
-    },
+    /// `::`
+    PathSep,
 
     /// `;`
     Semi,
@@ -118,8 +100,15 @@ pub enum TokenKind {
     Eof,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Literal {
+    pub symbol: String,
+    pub suffix: Option<String>,
+    pub kind: LiteralKind,
+}
+
 /// Enum representing the literal types supported by the lexer.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LiteralKind {
     /// `12_u8`, `0o100`, `0b120i99`, `1f32`.
     Int { base: Base, empty_int: bool },
@@ -128,7 +117,7 @@ pub enum LiteralKind {
     /// `'a'`, `'\\'`, `'''`, `';`
     Char { terminated: bool },
     /// `b'a'`, `b'\\'`, `b'''`, `b';`
-    Byte { terminated: bool },
+    // Byte { terminated: bool },
     /// `"abc"`, `"abc`
     Str { terminated: bool },
 }
