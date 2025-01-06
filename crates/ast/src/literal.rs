@@ -20,3 +20,54 @@ pub enum Number {
     Float32(f32),
     Float64(f64),
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Type {
+    UInt8,
+    UInt16,
+    UInt32,
+    UInt64,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    Float32,
+    Float64,
+    Str,
+    Char,
+    Bool,
+    Unit,
+}
+
+pub trait Typed {
+    fn get_type(&self) -> Type;
+}
+
+impl Typed for Number {
+    fn get_type(&self) -> Type {
+        match self {
+            Self::UInt8(_) => Type::UInt8,
+            Self::Int8(_) => Type::Int8,
+            Self::UInt16(_) => Type::UInt16,
+            Self::Int16(_) => Type::Int16,
+            Self::UInt32(_) => Type::UInt32,
+            Self::Int32(_) => Type::Int32,
+            Self::UInt64(_) => Type::UInt64,
+            Self::Int64(_) => Type::Int64,
+            Self::Float32(_) => Type::Float32,
+            Self::Float64(_) => Type::Float64,
+        }
+    }
+}
+
+impl Typed for Literal {
+    fn get_type(&self) -> Type {
+        match self {
+            Self::Unit => Type::Unit,
+            Self::Bool(_) => Type::Bool,
+            Self::Str(_) => Type::Str,
+            Self::Char(_) => Type::Char,
+            Self::Number(number) => number.get_type(),
+        }
+    }
+}
