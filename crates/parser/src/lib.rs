@@ -370,10 +370,22 @@ impl Parser {
             };
             Expression::Literal(self.literal(literal))
         } else if self.matches(TokenKind::OpenParen).is_some() {
+            self.grouping()
+        } else if self.matches(TokenKind::OpenBrace).is_some() {
             self.block()
         } else {
             panic!("expression expected, got: {:?}", self.peek())
         }
+    }
+
+    fn grouping(&mut self) -> Expression {
+        let expression = self.expression();
+
+        if self.matches(TokenKind::CloseParen).is_none() {
+            panic!("expected `)`.");
+        }
+
+        Expression::Grouping(Box::new(expression))
     }
 
     fn literal(&mut self, literal: LiteralToken) -> Literal {
