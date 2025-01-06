@@ -12,5 +12,10 @@ pub enum Expression {
         expr: Box<Expression>,
     },
     Grouping(Box<Expression>),
+    Identifier(String),
     Literal(Literal),
+    Assignment {
+        identifier: String,
+        expr: Box<Expression>,
+    },
 }
