@@ -31,6 +31,10 @@ pub enum TokenKind {
 
     /// `::`
     PathSep,
+    /// `->`
+    RArrow,
+    /// `<-`
+    LArrow,
 
     /// `;`
     Semi,

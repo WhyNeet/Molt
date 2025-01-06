@@ -167,7 +167,13 @@ impl<'a> Scanner<'a> {
                     })
                 }
                 '+' => TokenKind::Plus,
-                '-' => TokenKind::Minus,
+                '-' => {
+                    if self.matches('>') {
+                        TokenKind::RArrow
+                    } else {
+                        TokenKind::Minus
+                    }
+                }
                 '*' => TokenKind::Star,
                 '/' => {
                     if self.matches('/') {
@@ -236,6 +242,8 @@ impl<'a> Scanner<'a> {
                 '<' => {
                     if self.matches('=') {
                         TokenKind::Le
+                    } else if self.matches('-') {
+                        TokenKind::LArrow
                     } else {
                         TokenKind::Lt
                     }
