@@ -1,40 +1,32 @@
-use lexer::cursor::{
-    token::{Base, LiteralKind, Token, TokenKind},
-    Cursor,
+use lexer::scanner::{
+    token::{Base, Literal, LiteralKind, Token, TokenKind},
+    Scanner,
 };
 
 #[test]
 fn numbers_work() {
-    let input = r#"let x = 0b101;"#;
-    let res = Cursor::tokenize(input).collect::<Vec<Token>>();
+    let input = r#"let x = 0o6u32;"#;
+    let res = Scanner::tokenize(input).collect::<Vec<Token>>();
 
-    assert_eq!(res[0].kind, TokenKind::Ident);
-    assert_eq!(res[0].len, 3);
+    assert_eq!(res[0].kind, TokenKind::Ident("let".to_string()));
 
-    assert_eq!(res[1].kind, TokenKind::Whitespace);
-    assert_eq!(res[1].len, 1);
+    assert_eq!(res[1].kind, TokenKind::Ident("x".to_string()));
 
-    assert_eq!(res[2].kind, TokenKind::Ident);
-    assert_eq!(res[2].len, 1);
-
-    assert_eq!(res[3].kind, TokenKind::Whitespace);
-    assert_eq!(res[3].len, 1);
-
-    assert_eq!(res[4].kind, TokenKind::Eq);
-    assert_eq!(res[4].len, 1);
-
-    assert_eq!(res[5].kind, TokenKind::Whitespace);
-    assert_eq!(res[5].len, 1);
+    assert_eq!(res[2].kind, TokenKind::Eq);
 
     assert_eq!(
-        res[6].kind,
-        TokenKind::Literal {
+        res[3].kind,
+        TokenKind::Literal(Literal {
             kind: LiteralKind::Int {
-                base: Base::Binary,
+                base: Base::Octal,
                 empty_int: false
             },
-            suffix_start: 5
-        }
+            suffix: Some("u32".to_string()),
+            symbol: "0o6u32".to_string()
+        })
     );
-    assert_eq!(res[6].len, 5);
+
+    println!("{res:?}");
+
+    assert_eq!(res[4].kind, TokenKind::Semi);
 }
