@@ -6,16 +6,16 @@ use lexer::scanner::{
 #[test]
 fn numbers_work() {
     let input = r#"let x = 0o6u32;"#;
-    let res = Scanner::tokenize(input).collect::<Vec<Token>>();
+    let tokens = Scanner::tokenize(input).collect::<Vec<Token>>();
 
-    assert_eq!(res[0].kind, TokenKind::Ident("let".to_string()));
+    assert_eq!(tokens[0].kind, TokenKind::Ident("let".to_string()));
 
-    assert_eq!(res[1].kind, TokenKind::Ident("x".to_string()));
+    assert_eq!(tokens[1].kind, TokenKind::Ident("x".to_string()));
 
-    assert_eq!(res[2].kind, TokenKind::Eq);
+    assert_eq!(tokens[2].kind, TokenKind::Eq);
 
     assert_eq!(
-        res[3].kind,
+        tokens[3].kind,
         TokenKind::Literal(Literal {
             kind: LiteralKind::Int {
                 base: Base::Octal,
@@ -26,22 +26,22 @@ fn numbers_work() {
         })
     );
 
-    assert_eq!(res[4].kind, TokenKind::Semi);
+    assert_eq!(tokens[4].kind, TokenKind::Semi);
 }
 
 #[test]
 fn strings_work() {
     let input = r#"let x = "hello world!";"#;
-    let res = Scanner::tokenize(input).collect::<Vec<Token>>();
+    let tokens = Scanner::tokenize(input).collect::<Vec<Token>>();
 
-    assert_eq!(res[0].kind, TokenKind::Ident("let".to_string()));
+    assert_eq!(tokens[0].kind, TokenKind::Ident("let".to_string()));
 
-    assert_eq!(res[1].kind, TokenKind::Ident("x".to_string()));
+    assert_eq!(tokens[1].kind, TokenKind::Ident("x".to_string()));
 
-    assert_eq!(res[2].kind, TokenKind::Eq);
+    assert_eq!(tokens[2].kind, TokenKind::Eq);
 
     assert_eq!(
-        res[3].kind,
+        tokens[3].kind,
         TokenKind::Literal(Literal {
             kind: LiteralKind::Str { terminated: true },
             suffix: None,
@@ -49,5 +49,25 @@ fn strings_work() {
         })
     );
 
-    assert_eq!(res[4].kind, TokenKind::Semi);
+    assert_eq!(tokens[4].kind, TokenKind::Semi);
+}
+
+#[test]
+fn annotations_work() {
+    let input = r#"@main fun main() {}"#;
+    let tokens = Scanner::tokenize(input).collect::<Vec<Token>>();
+
+    assert_eq!(tokens[0].kind, TokenKind::Annotation("@main".to_string()));
+
+    assert_eq!(tokens[1].kind, TokenKind::Ident("fun".to_string()));
+
+    assert_eq!(tokens[2].kind, TokenKind::Ident("main".to_string()));
+
+    assert_eq!(tokens[3].kind, TokenKind::OpenParen);
+
+    assert_eq!(tokens[4].kind, TokenKind::CloseParen);
+
+    assert_eq!(tokens[5].kind, TokenKind::OpenBrace);
+
+    assert_eq!(tokens[6].kind, TokenKind::CloseBrace);
 }
