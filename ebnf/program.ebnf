@@ -3,7 +3,11 @@ program = { statement } ;
 statement = declStmt | exprStmt ;
 
 declStmt = { annotation " " } varDecl | funDecl ;
+
 varDecl = "let" IDENTIFIER "=" expression ";" ;
+
+funDecl = "fun" IDENTIFIER "(" [ parameters ] ")" [ "->" TYPE ] "{" program "}" ;
+parameters = IDENTIFIER ":" TYPE { "," IDENTIFIER ":" TYPE } ;
 
 exprStmt = expression ";" ;
 
