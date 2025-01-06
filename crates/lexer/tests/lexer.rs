@@ -26,7 +26,28 @@ fn numbers_work() {
         })
     );
 
-    println!("{res:?}");
+    assert_eq!(res[4].kind, TokenKind::Semi);
+}
+
+#[test]
+fn strings_work() {
+    let input = r#"let x = "hello world!";"#;
+    let res = Scanner::tokenize(input).collect::<Vec<Token>>();
+
+    assert_eq!(res[0].kind, TokenKind::Ident("let".to_string()));
+
+    assert_eq!(res[1].kind, TokenKind::Ident("x".to_string()));
+
+    assert_eq!(res[2].kind, TokenKind::Eq);
+
+    assert_eq!(
+        res[3].kind,
+        TokenKind::Literal(Literal {
+            kind: LiteralKind::Str { terminated: true },
+            suffix: None,
+            symbol: "\"hello world!\"".to_string()
+        })
+    );
 
     assert_eq!(res[4].kind, TokenKind::Semi);
 }
