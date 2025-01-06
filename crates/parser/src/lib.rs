@@ -2,7 +2,7 @@ use std::{iter::Peekable, mem};
 
 use ast::{
     expression::Expression,
-    literal::{Literal, Number},
+    literal::{Literal, Number, Type},
     operator::Operator,
     statement::Statement,
 };
@@ -58,11 +58,120 @@ impl Parser {
 
             match keyword {
                 Keyword::Let => self.var_decl(annotations),
+                Keyword::Fun => self.fun_decl(annotations),
                 _ => todo!(),
             }
         } else {
             self.expr_stmt()
         }
+    }
+
+    fn fun_decl(&mut self, annotations: Vec<String>) -> Statement {
+        let identifier = self
+            .matches(TokenKind::Ident(String::new()))
+            .expect("expected identifier.");
+
+        let identifier = match &identifier.kind {
+            TokenKind::Ident(ident) => ident.to_string(),
+            _ => panic!("expected identifier."),
+        };
+
+        self.matches(TokenKind::OpenParen).expect("expected `(`.");
+
+        let parameters = self.parameters();
+
+        let return_type = if self.matches(TokenKind::RArrow).is_some() {
+            let return_type = self
+                .matches(TokenKind::Ident(String::new()))
+                .expect("expected type after `->`");
+            let return_type = match &return_type.kind {
+                TokenKind::Ident(ident) => ident.to_string(),
+                _ => panic!("expected identifier."),
+            };
+            Type::try_from(return_type.as_str()).unwrap()
+        } else {
+            Type::Unit
+        };
+
+        let block = if self.matches(TokenKind::Semi).is_some() {
+            // function without a block (possibly an external declaration)
+            None
+        } else {
+            if self.matches(TokenKind::Eq).is_none() {
+                panic!("expected `=`.");
+            }
+
+            Some(self.expression())
+        };
+
+        Statement::FunctionDeclaration {
+            name: identifier,
+            block,
+            return_type,
+            parameters,
+            annotations,
+        }
+    }
+
+    fn block(&mut self) -> Expression {
+        let mut statements = vec![];
+
+        while self.matches(TokenKind::CloseParen).is_none() {
+            statements.push(self.declaration());
+        }
+
+        Expression::Block(statements)
+    }
+
+    fn parameters(&mut self) -> Vec<(String, Type)> {
+        let mut parameters = vec![];
+
+        if self
+            .peek()
+            .map(|token| match token.kind {
+                TokenKind::Ident(_) => true,
+                _ => false,
+            })
+            .unwrap_or(false)
+        {
+            parameters.push(self.ident_type_pair());
+        }
+
+        while self.matches(TokenKind::CloseParen).is_none() {
+            self.matches(TokenKind::Comma).expect("expected `,`.");
+
+            parameters.push(self.ident_type_pair());
+        }
+
+        parameters
+    }
+
+    fn ident_type_pair(&mut self) -> (String, Type) {
+        let identifier = self
+            .matches(TokenKind::Ident(String::new()))
+            .expect("expected identifier.");
+
+        let identifier = match &identifier.kind {
+            TokenKind::Ident(ident) => ident.to_string(),
+            _ => panic!("expected identifier."),
+        };
+
+        if self.matches(TokenKind::Colon).is_none() {
+            panic!("expected `:`.");
+        }
+
+        let type_ident = self
+            .matches(TokenKind::Ident(String::new()))
+            .expect("expected identifier.");
+
+        let type_ident = match &type_ident.kind {
+            TokenKind::Ident(ident) => ident.to_string(),
+            _ => panic!("expected identifier."),
+        };
+
+        let type_ident = Type::try_from(type_ident.as_str()).unwrap();
+
+        (identifier, type_ident)
     }
 
     fn var_decl(&mut self, annotations: Vec<String>) -> Statement {
@@ -95,11 +204,10 @@ impl Parser {
     fn expr_stmt(&mut self) -> Statement {
         let expression = self.expression();
 
-        if self.matches(TokenKind::Semi).is_none() {
-            panic!("expected semicolon.");
+        Statement::Expression {
+            expr: expression,
+            end_semi: self.matches(TokenKind::Semi).is_some(),
         }
-
-        Statement::Expression(expression)
     }
 
     fn expression(&mut self) -> Expression {
