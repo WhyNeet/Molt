@@ -370,7 +370,7 @@ impl Parser {
             };
             Expression::Literal(self.literal(literal))
         } else if self.matches(TokenKind::OpenParen).is_some() {
-            todo!()
+            self.block()
         } else {
             panic!("expression expected, got: {:?}", self.peek())
         }
