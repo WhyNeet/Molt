@@ -1,3 +1,5 @@
+use super::keywords::Keyword;
+
 /// Parsed token.
 /// It doesn't contain information about data that has been parsed,
 /// only the type of the token and its size.
@@ -17,6 +19,9 @@ pub enum TokenKind {
 
     /// An identifier or keyword, e.g. `ident` or `continue`.
     Ident(String),
+
+    /// A keyword, e.g. `fun`, `let`, ...
+    Keyword(Keyword),
 
     /// A compiler annotation, e.g. `@main`, `@effect`, ...
     Annotation(String),
@@ -116,6 +121,8 @@ pub enum LiteralKind {
     Float { base: Base, empty_exponent: bool },
     /// `'a'`, `'\\'`, `'''`, `';`
     Char { terminated: bool },
+    /// `true` or `false`
+    Bool,
     /// `b'a'`, `b'\\'`, `b'''`, `b';`
     // Byte { terminated: bool },
     /// `"abc"`, `"abc`

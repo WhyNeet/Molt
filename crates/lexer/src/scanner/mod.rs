@@ -1,7 +1,9 @@
+pub mod keywords;
 pub mod token;
 
 use std::str::Chars;
 
+use keywords::Keyword;
 use token::{Base, Literal, LiteralKind, Token, TokenKind};
 
 const EOF_CHAR: char = '\0';
@@ -433,7 +435,22 @@ impl<'a> Scanner<'a> {
             self.advance();
         }
 
-        TokenKind::Ident(self.src[self.start..self.current].to_string())
+        let symbol = &self.src[self.start..self.current];
+
+        match symbol {
+            "true" | "false" => TokenKind::Literal(Literal {
+                symbol: symbol.to_string(),
+                suffix: None,
+                kind: LiteralKind::Bool,
+            }),
+            ident => {
+                if let Ok(keyword) = Keyword::try_from(symbol) {
+                    TokenKind::Keyword(keyword)
+                } else {
+                    TokenKind::Ident(ident.to_string())
+                }
+            }
+        }
     }
 
     fn line_comment(&mut self) -> TokenKind {
