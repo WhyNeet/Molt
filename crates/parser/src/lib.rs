@@ -4,8 +4,10 @@ use ast::{
     expression::Expression,
     literal::{Literal, Number},
     operator::Operator,
+    statement::Statement,
 };
 use lexer::scanner::{
+    keywords::Keyword,
     token::{Base, Literal as LiteralToken, Token, TokenKind},
     Scanner,
 };
@@ -22,8 +24,71 @@ impl Parser {
 }
 
 impl Parser {
-    pub fn parse(&mut self) -> Expression {
-        self.expression()
+    pub fn parse(&mut self) -> Vec<Statement> {
+        self.program()
+    }
+
+    fn program(&mut self) -> Vec<Statement> {
+        let mut statements = vec![];
+
+        while !self.is_at_end() {
+            statements.push(self.declaration())
+        }
+
+        statements
+    }
+
+    fn declaration(&mut self) -> Statement {
+        if let Some(keyword) = self.matches(TokenKind::Keyword(Keyword::Fun)) {
+            let keyword = match keyword.kind {
+                TokenKind::Keyword(keyword) => keyword,
+                _ => unreachable!(),
+            };
+
+            match keyword {
+                Keyword::Let => self.var_decl(),
+                _ => todo!(),
+            }
+        } else {
+            self.expr_stmt()
+        }
+    }
+
+    fn var_decl(&mut self) -> Statement {
+        let identifier = self
+            .matches(TokenKind::Ident(String::new()))
+            .expect("expected identifier.");
+
+        let identifier = match &identifier.kind {
+            TokenKind::Ident(ident) => ident.to_string(),
+            _ => panic!("expected identifier."),
+        };
+
+        if self.matches(TokenKind::Eq).is_none() {
+            panic!("expected `=`.");
+        }
+
+        let expression = self.expression();
+
+        if self.matches(TokenKind::Semi).is_none() {
+            panic!("expected `;`.");
+        }
+
+        Statement::VariableDeclaration {
+            name: identifier,
+            expr: expression,
+            annotations: vec![],
+        }
+    }
+
+    fn expr_stmt(&mut self) -> Statement {
+        let expression = self.expression();
+
+        if self.matches(TokenKind::Semi).is_none() {
+            panic!("expected semicolon.");
+        }
+
+        Statement::Expression(expression)
     }
 
     fn expression(&mut self) -> Expression {
