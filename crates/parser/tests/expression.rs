@@ -202,3 +202,29 @@ fn function_call_works() {
         }
     );
 }
+
+#[test]
+fn cast_works() {
+    let input = r#"(1 as u32 + 5u32) as u64"#;
+    let tokens = Scanner::tokenize(input).collect();
+
+    let tree = Parser::new(tokens).parse();
+
+    assert_eq!(
+        tree[0],
+        Statement::Expression {
+            expr: Expression::Cast {
+                expr: Box::new(Expression::Grouping(Box::new(Expression::Binary {
+                    left: Box::new(Expression::Cast {
+                        expr: Box::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
+                        ty: Type::UInt32
+                    }),
+                    operator: Operator::Add,
+                    right: Box::new(Expression::Literal(Literal::Number(Number::UInt32(5))))
+                }))),
+                ty: Type::UInt64
+            },
+            end_semi: false
+        }
+    );
+}
