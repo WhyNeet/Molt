@@ -167,3 +167,38 @@ fn member_access_works() {
         }
     );
 }
+
+#[test]
+fn function_call_works() {
+    let input = r#"a.b.c(1 + 2, 3)()"#;
+    let tokens = Scanner::tokenize(input).collect();
+
+    let tree = Parser::new(tokens).parse();
+
+    assert_eq!(
+        tree[0],
+        Statement::Expression {
+            expr: Expression::Call {
+                expr: Box::new(Expression::Call {
+                    expr: Box::new(Expression::MemberAccess {
+                        expr: Box::new(Expression::MemberAccess {
+                            expr: Box::new(Expression::Identifier("a".to_string())),
+                            ident: "b".to_string()
+                        }),
+                        ident: "c".to_string()
+                    }),
+                    arguments: vec![
+                        Expression::Binary {
+                            left: Box::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
+                            operator: Operator::Add,
+                            right: Box::new(Expression::Literal(Literal::Number(Number::Int32(2))))
+                        },
+                        Expression::Literal(Literal::Number(Number::Int32(3)))
+                    ]
+                }),
+                arguments: vec![]
+            },
+            end_semi: false
+        }
+    );
+}
