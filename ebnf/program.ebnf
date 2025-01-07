@@ -1,8 +1,10 @@
 program = { statement } ;
 
-statement = decl_stmt | expr_stmt ;
+statement = annotated | expr_stmt ;
 
-decl_stmt = { annotation " " } var_decl | fun_decl ;
+annotated = { annotation " " } decl_stmt ;
+
+decl_stmt = var_decl | fun_decl ;
 
 var_decl = "let" IDENTIFIER "=" expression ";" ;
 
@@ -11,4 +13,5 @@ parameters = IDENTIFIER ":" TYPE { "," IDENTIFIER ":" TYPE } ;
 
 expr_stmt = expression ";" ;
 
-annotation = "@" STRING ;
+annotation = "@" IDENTIFIER [ "(" [ annotation_data ] ")" ] ;
+annotation_data = IDENTIFIER { "," IDENTIFIER } ;
