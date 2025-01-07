@@ -1,4 +1,4 @@
-use crate::{expression::Expression, literal::Type};
+use crate::{annotation::Annotation, expression::Expression, literal::Type};
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
@@ -9,13 +9,15 @@ pub enum Statement {
     VariableDeclaration {
         name: String,
         expr: Expression,
-        annotations: Vec<String>,
     },
     FunctionDeclaration {
         name: String,
         block: Option<Expression>,
         return_type: Type,
         parameters: Vec<(String, Type)>,
-        annotations: Vec<String>,
+    },
+    Annotated {
+        annotations: Vec<Annotation>,
+        stmt: Box<Statement>,
     },
 }
