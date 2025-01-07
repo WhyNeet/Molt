@@ -220,6 +220,7 @@ impl<'a> Scanner<'a> {
                     }
                 }
                 '.' => TokenKind::Dot,
+                ',' => TokenKind::Comma,
                 '(' => TokenKind::OpenParen,
                 '{' => TokenKind::OpenBrace,
                 ')' => TokenKind::CloseParen,
