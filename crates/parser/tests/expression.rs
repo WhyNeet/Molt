@@ -89,3 +89,59 @@ fn extern_functions_work() {
         }
     );
 }
+
+#[test]
+fn conditional_expressions_work() {
+    let input = r#"1 * 3 + if a > 2 { 1 } else if a == 4 { -5 } else { 2 }"#;
+    let tokens = Scanner::tokenize(input).collect();
+
+    let tree = Parser::new(tokens).parse();
+
+    assert_eq!(
+        tree[0],
+        Statement::Expression {
+            expr: Expression::Binary {
+                left: Box::new(Expression::Binary {
+                    left: Box::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
+                    operator: Operator::Mul,
+                    right: Box::new(Expression::Literal(Literal::Number(Number::Int32(3))))
+                }),
+                operator: Operator::Add,
+                right: Box::new(Expression::Conditional {
+                    condition: Box::new(Expression::Binary {
+                        left: Box::new(Expression::Identifier("a".to_string())),
+                        operator: Operator::Gt,
+                        right: Box::new(Expression::Literal(Literal::Number(Number::Int32(2))))
+                    }),
+                    body: vec![Statement::Expression {
+                        expr: Expression::Literal(Literal::Number(Number::Int32(1))),
+                        end_semi: false
+                    }],
+                    alternative: Some(Box::new(Expression::Conditional {
+                        condition: Box::new(Expression::Binary {
+                            left: Box::new(Expression::Identifier("a".to_string())),
+                            operator: Operator::Eq,
+                            right: Box::new(Expression::Literal(Literal::Number(Number::Int32(4))))
+                        }),
+                        body: vec![Statement::Expression {
+                            expr: Expression::Unary {
+                                operator: Operator::Neg,
+                                expr: Box::new(Expression::Literal(Literal::Number(
+                                    Number::Int32(5)
+                                )))
+                            },
+                            end_semi: false
+                        }],
+                        alternative: Some(Box::new(Expression::Block(vec![
+                            Statement::Expression {
+                                expr: Expression::Literal(Literal::Number(Number::Int32(2))),
+                                end_semi: false
+                            }
+                        ])))
+                    }))
+                })
+            },
+            end_semi: false
+        }
+    );
+}
