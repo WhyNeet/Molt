@@ -8,6 +8,7 @@ pub enum Keyword {
     Return,
     Break,
     Continue,
+    As,
 }
 
 impl TryFrom<&str> for Keyword {
@@ -23,6 +24,7 @@ impl TryFrom<&str> for Keyword {
             "return" => Ok(Keyword::Return),
             "break" => Ok(Keyword::Break),
             "continue" => Ok(Keyword::Continue),
+            "as" => Ok(Keyword::As),
             other => Err(format!("`{other}` is not a keyword.")),
         }
     }
