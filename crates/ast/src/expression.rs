@@ -19,4 +19,9 @@ pub enum Expression {
         expr: Box<Expression>,
     },
     Block(Vec<Statement>),
+    Conditional {
+        condition: Box<Expression>,
+        body: Vec<Statement>,
+        alternative: Option<Box<Expression>>,
+    },
 }

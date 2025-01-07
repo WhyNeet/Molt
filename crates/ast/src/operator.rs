@@ -10,9 +10,15 @@ pub enum Operator {
     Not,
     And,
     Or,
-    Xor,
+    BitXor,
     Shl,
     Shr,
+    Eq,
+    Ne,
+    Gt,
+    Ge,
+    Lt,
+    Le,
 }
 
 impl TryFrom<&Token> for Operator {
@@ -26,7 +32,13 @@ impl TryFrom<&Token> for Operator {
             TokenKind::Slash => Ok(Self::Div),
             TokenKind::AndAnd => Ok(Self::And),
             TokenKind::OrOr => Ok(Self::Or),
-            TokenKind::Caret => Ok(Self::Xor),
+            TokenKind::Caret => Ok(Self::BitXor),
+            TokenKind::Gt => Ok(Self::Gt),
+            TokenKind::Ge => Ok(Self::Ge),
+            TokenKind::Lt => Ok(Self::Lt),
+            TokenKind::Le => Ok(Self::Le),
+            TokenKind::EqEq => Ok(Self::Eq),
+            TokenKind::Ne => Ok(Self::Ne),
             ref other => Err(format!("unknown operator: `{other:?}`")),
         }
     }
