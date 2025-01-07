@@ -2,7 +2,7 @@ program = { statement } ;
 
 statement = decl_stmt | expr_stmt ;
 
-decls_tmt = { annotation " " } var_decl | fun_decl ;
+decl_stmt = { annotation " " } var_decl | fun_decl ;
 
 var_decl = "let" IDENTIFIER "=" expression ";" ;
 
