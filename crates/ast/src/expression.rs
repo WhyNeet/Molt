@@ -40,4 +40,7 @@ pub enum Expression {
         expr: Box<Expression>,
         ty: Type,
     },
+    Loop(Vec<Statement>),
+    Continue,
+    Break,
 }
