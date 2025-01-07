@@ -473,11 +473,26 @@ impl Parser {
             };
             match keyword {
                 Keyword::If => self.conditional(),
+                Keyword::Loop => self.loop_expr(),
+                Keyword::Break => Expression::Break,
+                Keyword::Continue => Expression::Continue,
                 other => todo!("{other:?}"),
             }
         } else {
             panic!("expression expected, got: {:?}", self.peek())
         }
+    }
+
+    fn loop_expr(&mut self) -> Expression {
+        self.matches(TokenKind::OpenBrace).expect("expected `{`");
+
+        let block = self.block();
+        let statements = match block {
+            Expression::Block(stmts) => stmts,
+            _ => unreachable!(),
+        };
+
+        Expression::Loop(statements)
     }
 
     fn conditional(&mut self) -> Expression {
