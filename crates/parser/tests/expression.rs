@@ -145,3 +145,25 @@ fn conditional_expressions_work() {
         }
     );
 }
+
+#[test]
+fn member_access_works() {
+    let input = r#"a.b.c"#;
+    let tokens = Scanner::tokenize(input).collect();
+
+    let tree = Parser::new(tokens).parse();
+
+    assert_eq!(
+        tree[0],
+        Statement::Expression {
+            expr: Expression::MemberAccess {
+                expr: Box::new(Expression::MemberAccess {
+                    expr: Box::new(Expression::Identifier("a".to_string())),
+                    ident: "b".to_string()
+                }),
+                ident: "c".to_string()
+            },
+            end_semi: false
+        }
+    );
+}
