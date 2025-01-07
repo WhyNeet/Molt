@@ -1,14 +1,14 @@
 program = { statement } ;
 
-statement = declStmt | exprStmt ;
+statement = decl_stmt | expr_stmt ;
 
-declStmt = { annotation " " } varDecl | funDecl ;
+decls_tmt = { annotation " " } var_decl | fun_decl ;
 
-varDecl = "let" IDENTIFIER "=" expression ";" ;
+var_decl = "let" IDENTIFIER "=" expression ";" ;
 
-funDecl = "fun" IDENTIFIER "(" [ parameters ] ")" [ "->" TYPE ] ( "=" expression | ";" ) ;
+fun_decl = "fun" IDENTIFIER "(" [ parameters ] ")" [ "->" TYPE ] ( "=" expression | ";" ) ;
 parameters = IDENTIFIER ":" TYPE { "," IDENTIFIER ":" TYPE } ;
 
-exprStmt = expression ";" ;
+expr_stmt = expression ";" ;
 
 annotation = "@" STRING ;
