@@ -28,4 +28,8 @@ pub enum Expression {
         expr: Box<Expression>,
         ident: String,
     },
+    Call {
+        expr: Box<Expression>,
+        arguments: Vec<Expression>,
+    },
 }
