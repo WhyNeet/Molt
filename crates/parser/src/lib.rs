@@ -327,15 +327,41 @@ impl Parser {
     }
 
     fn factor(&mut self) -> Expression {
-        let mut expr = self.unary();
+        let mut expr = self.cast();
 
         while self.matches(TokenKind::Star).is_some() || self.matches(TokenKind::Slash).is_some() {
             let operator = self.prev().unwrap().try_into().unwrap();
-            let right = self.unary();
+            let right = self.cast();
             expr = Expression::Binary {
                 left: Box::new(expr),
                 operator,
                 right: Box::new(right),
+            };
+        }
+
+        expr
+    }
+
+    fn cast(&mut self) -> Expression {
+        let mut expr = self.unary();
+
+        while self
+            .matches_exact(TokenKind::Keyword(Keyword::As))
+            .is_some()
+        {
+            let type_ident = self
+                .matches(TokenKind::Ident(String::new()))
+                .expect("expected type after `as`");
+            let type_ident = match type_ident.kind {
+                TokenKind::Ident(ref ident) => ident,
+                _ => unreachable!(),
+            };
+
+            let ty = Type::try_from(type_ident.as_str()).unwrap();
+
+            expr = Expression::Cast {
+                expr: Box::new(expr),
+                ty,
             };
         }
 
