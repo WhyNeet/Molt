@@ -1,4 +1,8 @@
-use crate::{literal::Literal, operator::Operator, statement::Statement};
+use crate::{
+    literal::{Literal, Type},
+    operator::Operator,
+    statement::Statement,
+};
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
@@ -31,5 +35,9 @@ pub enum Expression {
     Call {
         expr: Box<Expression>,
         arguments: Vec<Expression>,
+    },
+    Cast {
+        expr: Box<Expression>,
+        ty: Type,
     },
 }
