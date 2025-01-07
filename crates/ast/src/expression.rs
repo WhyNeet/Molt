@@ -24,4 +24,8 @@ pub enum Expression {
         body: Vec<Statement>,
         alternative: Option<Box<Expression>>,
     },
+    MemberAccess {
+        expr: Box<Expression>,
+        ident: String,
+    },
 }
