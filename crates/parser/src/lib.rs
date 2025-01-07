@@ -354,8 +354,47 @@ impl Parser {
                 expr: Box::new(self.unary()),
             }
         } else {
-            self.member_access()
+            self.fn_call()
         }
+    }
+
+    fn fn_call(&mut self) -> Expression {
+        let mut expr = self.member_access();
+
+        while self.matches(TokenKind::OpenParen).is_some() {
+            let arguments = self.arguments();
+
+            self.matches(TokenKind::CloseParen).expect("expected `)`");
+
+            expr = Expression::Call {
+                expr: Box::new(expr),
+                arguments,
+            };
+        }
+
+        expr
+    }
+
+    fn arguments(&mut self) -> Vec<Expression> {
+        let mut arguments = vec![];
+
+        if self
+            .peek()
+            .map(|token| match token.kind {
+                TokenKind::CloseParen => false,
+                _ => true,
+            })
+            .unwrap_or(false)
+        {
+            // if not `ident()`
+            arguments.push(self.expression());
+        }
+
+        while self.matches(TokenKind::Comma).is_some() {
+            arguments.push(self.expression());
+        }
+
+        arguments
     }
 
     fn member_access(&mut self) -> Expression {
@@ -585,6 +624,10 @@ impl Parser {
 
     fn peek(&self) -> Option<&Token> {
         self.tokens.get(self.current)
+    }
+
+    fn peek_nth(&self, n: usize) -> Option<&Token> {
+        self.tokens.get(self.current + n)
     }
 
     fn prev(&self) -> Option<&Token> {
