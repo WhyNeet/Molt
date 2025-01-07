@@ -16,6 +16,10 @@ version = "0.1.0"
 [[package]]
 name = "molt"
 version = "0.1.0"
+dependencies = [
+ "lexer",
+ "parser",
+]
 
 [[package]]
 name = "parser"
