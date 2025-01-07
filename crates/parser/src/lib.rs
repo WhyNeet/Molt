@@ -1,6 +1,7 @@
 use std::{iter::Peekable, mem};
 
 use ast::{
+    annotation::Annotation,
     expression::Expression,
     literal::{Literal, Number, Type},
     operator::Operator,
@@ -44,17 +45,6 @@ impl Parser {
     }
 
     fn declaration(&mut self) -> Statement {
-        let mut annotations = vec![];
-
-        while let Some(annotation) = self.matches(TokenKind::Annotation(String::new())) {
-            let annotation = match &annotation.kind {
-                TokenKind::Annotation(annotation) => annotation.to_string(),
-                _ => unreachable!(),
-            };
-
-            annotations.push(annotation);
-        }
-
         if let Some(keyword) = self.matches(TokenKind::Keyword(Keyword::Fun)) {
             let keyword = match keyword.kind {
                 TokenKind::Keyword(keyword) => keyword,
@@ -62,19 +52,88 @@ impl Parser {
             };
 
             match keyword {
-                Keyword::Let => self.var_decl(annotations),
-                Keyword::Fun => self.fun_decl(annotations),
+                Keyword::Let => self.var_decl(),
+                Keyword::Fun => self.fun_decl(),
                 _ => {
                     self.back();
                     self.expr_stmt()
                 }
             }
+        } else if self
+            .peek()
+            .map(|token| token.kind == TokenKind::At)
+            .unwrap_or(false)
+        {
+            self.annotated()
         } else {
             self.expr_stmt()
         }
     }
 
-    fn fun_decl(&mut self, annotations: Vec<String>) -> Statement {
+    fn annotated(&mut self) -> Statement {
+        let mut annotations = vec![];
+
+        while self.matches(TokenKind::At).is_some() {
+            annotations.push(self.annotation());
+        }
+
+        let statement = self.declaration();
+
+        Statement::Annotated {
+            annotations,
+            stmt: Box::new(statement),
+        }
+    }
+
+    fn annotation(&mut self) -> Annotation {
+        let identifier = self
+            .matches(TokenKind::Ident(String::new()))
+            .expect("expected identifier.");
+
+        let identifier = match &identifier.kind {
+            TokenKind::Ident(ident) => ident.to_string(),
+            _ => panic!("expected identifier."),
+        };
+
+        let mut args = vec![];
+
+        if self.matches(TokenKind::OpenParen).is_some()
+            && self.matches(TokenKind::CloseParen).is_none()
+        {
+            let arg = self
+                .matches(TokenKind::Ident(String::new()))
+                .expect("expected identifier.");
+
+            let arg = match &arg.kind {
+                TokenKind::Ident(ident) => ident.to_string(),
+                _ => panic!("expected identifier."),
+            };
+
+            args.push(arg);
+
+            while self.matches(TokenKind::Comma).is_some() {
+                let arg = self
+                    .matches(TokenKind::Ident(String::new()))
+                    .expect("expected identifier.");
+
+                let arg = match &arg.kind {
+                    TokenKind::Ident(ident) => ident.to_string(),
+                    _ => panic!("expected identifier."),
+                };
+
+                args.push(arg);
+            }
+
+            self.matches(TokenKind::CloseParen).expect("expected `)`.");
+        }
+
+        Annotation {
+            name: identifier,
+            arguments: args,
+        }
+    }
+
+    fn fun_decl(&mut self) -> Statement {
         let identifier = self
             .matches(TokenKind::Ident(String::new()))
             .expect("expected identifier.");
@@ -117,7 +176,6 @@ impl Parser {
             block,
             return_type,
             parameters,
-            annotations,
         }
     }
 
@@ -182,7 +240,7 @@ impl Parser {
         (identifier, type_ident)
     }
 
-    fn var_decl(&mut self, annotations: Vec<String>) -> Statement {
+    fn var_decl(&mut self) -> Statement {
         let identifier = self
             .matches(TokenKind::Ident(String::new()))
             .expect("expected identifier.");
@@ -205,7 +263,6 @@ impl Parser {
         Statement::VariableDeclaration {
             name: identifier,
             expr: expression,
-            annotations,
         }
     }
 
