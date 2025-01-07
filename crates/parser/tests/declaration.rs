@@ -1,4 +1,5 @@
 use ast::{
+    annotation::Annotation,
     expression::Expression,
     literal::{Literal, Number, Type},
     operator::Operator,
@@ -19,7 +20,6 @@ fn variable_declaration_works() {
         Statement::VariableDeclaration {
             name: "x".to_string(),
             expr: Expression::Literal(Literal::Number(Number::Int32(1))),
-            annotations: vec![]
         }
     );
 }
@@ -42,7 +42,6 @@ fn function_declaration_works() {
             }),
             return_type: Type::Int32,
             parameters: vec![("x".to_string(), Type::Int32)],
-            annotations: vec![]
         }
     );
 }
@@ -56,12 +55,17 @@ fn extern_functions_work() {
 
     assert_eq!(
         tree[0],
-        Statement::FunctionDeclaration {
-            name: "printf".to_string(),
-            block: None,
-            return_type: Type::Int32,
-            parameters: vec![("ptr".to_string(), Type::Int8)],
-            annotations: vec!["@extern".to_string()]
+        Statement::Annotated {
+            annotations: vec![Annotation {
+                arguments: vec![],
+                name: "extern".to_string()
+            }],
+            stmt: Box::new(Statement::FunctionDeclaration {
+                name: "printf".to_string(),
+                block: None,
+                return_type: Type::Int32,
+                parameters: vec![("ptr".to_string(), Type::Int8)],
+            })
         }
     );
 }
