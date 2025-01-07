@@ -207,10 +207,7 @@ impl<'a> Scanner<'a> {
                         TokenKind::Eq
                     }
                 }
-                '@' => match self.peek() {
-                    c if is_ident_start(c) => self.annotation(),
-                    _ => TokenKind::At,
-                },
+                '@' => TokenKind::At,
                 ';' => TokenKind::Semi,
                 ':' => {
                     if self.matches(':') {
@@ -427,15 +424,6 @@ impl<'a> Scanner<'a> {
         } else {
             LiteralKind::Char { terminated: true }
         }
-    }
-
-    fn annotation(&mut self) -> TokenKind {
-        let name = match self.identifier() {
-            TokenKind::Ident(s) => s,
-            _ => unreachable!(),
-        };
-
-        TokenKind::Annotation(name)
     }
 
     fn identifier(&mut self) -> TokenKind {

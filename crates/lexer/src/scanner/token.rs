@@ -23,9 +23,6 @@ pub enum TokenKind {
     /// A keyword, e.g. `fun`, `let`, ...
     Keyword(Keyword),
 
-    /// A compiler annotation, e.g. `@main`, `@effect`, ...
-    Annotation(String),
-
     /// Literals, e.g. `12u8`, `1.0e-40`, `b"123"`.
     Literal(Literal),
 

@@ -58,17 +58,19 @@ fn annotations_work() {
     let input = r#"@main fun main() {}"#;
     let tokens = Scanner::tokenize(input).collect::<Vec<Token>>();
 
-    assert_eq!(tokens[0].kind, TokenKind::Annotation("@main".to_string()));
+    assert_eq!(tokens[0].kind, TokenKind::At);
 
-    assert_eq!(tokens[1].kind, TokenKind::Keyword(Keyword::Fun));
+    assert_eq!(tokens[1].kind, TokenKind::Ident("main".to_string()));
 
-    assert_eq!(tokens[2].kind, TokenKind::Ident("main".to_string()));
+    assert_eq!(tokens[2].kind, TokenKind::Keyword(Keyword::Fun));
 
-    assert_eq!(tokens[3].kind, TokenKind::OpenParen);
+    assert_eq!(tokens[3].kind, TokenKind::Ident("main".to_string()));
 
-    assert_eq!(tokens[4].kind, TokenKind::CloseParen);
+    assert_eq!(tokens[4].kind, TokenKind::OpenParen);
 
-    assert_eq!(tokens[5].kind, TokenKind::OpenBrace);
+    assert_eq!(tokens[5].kind, TokenKind::CloseParen);
 
-    assert_eq!(tokens[6].kind, TokenKind::CloseBrace);
+    assert_eq!(tokens[6].kind, TokenKind::OpenBrace);
+
+    assert_eq!(tokens[7].kind, TokenKind::CloseBrace);
 }
