@@ -8,5 +8,6 @@ shift = term { ( "<<" | ">>" ) term } ;
 term = factor { ( "+" | "-" ) factor } ;
 factor = unary { ( "*" | "/" ) unary } ;
 unary = ( "!" | "-" ) unary | primary ;
-primary = STRING | IDENTIFIER | NUMBER | "true" | "false" | "(" expression ")" | "(" ")" | block ;
+primary = STRING | IDENTIFIER | NUMBER | "true" | "false" | "(" expression ")" | "(" ")" | block | conditional ;
 block = "{" expression "}" ;
+conditional = "if" expression block { "else" "if" expression block } [ "else" block ] ;
