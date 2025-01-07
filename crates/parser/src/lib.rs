@@ -32,6 +32,11 @@ impl Parser {
         let mut statements = vec![];
 
         while !self.is_at_end() {
+            self.matches_either(&[
+                TokenKind::LineComment,
+                TokenKind::BlockComment { terminated: true },
+            ]);
+
             statements.push(self.declaration())
         }
 
@@ -59,7 +64,10 @@ impl Parser {
             match keyword {
                 Keyword::Let => self.var_decl(annotations),
                 Keyword::Fun => self.fun_decl(annotations),
-                _ => todo!(),
+                _ => {
+                    self.back();
+                    self.expr_stmt()
+                }
             }
         } else {
             self.expr_stmt()
@@ -116,7 +124,7 @@ impl Parser {
     fn block(&mut self) -> Expression {
         let mut statements = vec![];
 
-        while self.matches(TokenKind::CloseParen).is_none() {
+        while self.matches(TokenKind::CloseBrace).is_none() {
             statements.push(self.declaration());
         }
 
@@ -269,7 +277,7 @@ impl Parser {
     fn equality(&mut self) -> Expression {
         let mut expr = self.comparison();
 
-        while self.matches_either(&[TokenKind::Eq, TokenKind::Ne]) {
+        while self.matches_either(&[TokenKind::EqEq, TokenKind::Ne]) {
             let operator = self.prev().unwrap().try_into().unwrap();
             let right = self.comparison();
             expr = Expression::Binary {
@@ -320,12 +328,10 @@ impl Parser {
 
     fn factor(&mut self) -> Expression {
         let mut expr = self.unary();
-        println!("factor. current: {}", self.current);
+
         while self.matches(TokenKind::Star).is_some() || self.matches(TokenKind::Slash).is_some() {
-            println!("factor. current: {}", self.current);
             let operator = self.prev().unwrap().try_into().unwrap();
             let right = self.unary();
-            println!("left: {expr:?}; {operator:?}; right: {right:?}");
             expr = Expression::Binary {
                 left: Box::new(expr),
                 operator,
@@ -373,8 +379,56 @@ impl Parser {
             self.grouping()
         } else if self.matches(TokenKind::OpenBrace).is_some() {
             self.block()
+        } else if let Some(keyword) = self.matches(TokenKind::Keyword(Keyword::If)) {
+            let keyword = match keyword.kind {
+                TokenKind::Keyword(keyword) => keyword,
+                _ => unreachable!(),
+            };
+            match keyword {
+                Keyword::If => self.conditional(),
+                other => todo!("{other:?}"),
+            }
         } else {
             panic!("expression expected, got: {:?}", self.peek())
+        }
+    }
+
+    fn conditional(&mut self) -> Expression {
+        let condition = self.expression();
+
+        if self.matches(TokenKind::OpenBrace).is_none() {
+            panic!("expected `{{`.");
+        }
+
+        let body = match self.block() {
+            Expression::Block(stmts) => stmts,
+            _ => unreachable!(),
+        };
+
+        let alternative = if self
+            .matches_exact(TokenKind::Keyword(Keyword::Else))
+            .is_some()
+        {
+            if self
+                .matches_exact(TokenKind::Keyword(Keyword::If))
+                .is_some()
+            {
+                Some(self.conditional())
+            } else {
+                if self.matches(TokenKind::OpenBrace).is_none() {
+                    panic!("expected `{{`.");
+                }
+
+                Some(self.block())
+            }
+        } else {
+            None
+        };
+
+        Expression::Conditional {
+            condition: Box::new(condition),
+            body,
+            alternative: alternative.map(Box::new),
         }
     }
 
@@ -471,10 +525,24 @@ impl Parser {
         }
     }
 
+    fn back(&mut self) {
+        self.current -= 1;
+    }
+
     fn matches(&mut self, kind: TokenKind) -> Option<&Token> {
         if !self.is_at_end()
             && mem::discriminant(&self.tokens[self.current].kind) == mem::discriminant(&kind)
         {
+            let token = self.tokens.get(self.current);
+            self.current += 1;
+            token
+        } else {
+            None
+        }
+    }
+
+    fn matches_exact(&mut self, kind: TokenKind) -> Option<&Token> {
+        if !self.is_at_end() && self.tokens[self.current].kind == kind {
             let token = self.tokens.get(self.current);
             self.current += 1;
             token
