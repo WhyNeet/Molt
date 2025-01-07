@@ -461,7 +461,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn line_comment(&mut self) -> TokenKind {
-        while self.peek() != '\n' {
+        while !self.is_at_end() && self.peek() != '\n' {
             self.advance();
         }
 
