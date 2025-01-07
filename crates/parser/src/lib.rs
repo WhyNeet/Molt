@@ -354,8 +354,29 @@ impl Parser {
                 expr: Box::new(self.unary()),
             }
         } else {
-            self.primary()
+            self.member_access()
         }
+    }
+
+    fn member_access(&mut self) -> Expression {
+        let mut expr = self.primary();
+
+        while self.matches(TokenKind::Dot).is_some() {
+            let identifier = self
+                .matches(TokenKind::Ident(String::new()))
+                .expect("expected identifier.");
+            let identifier = match identifier.kind {
+                TokenKind::Ident(ref ident) => ident.to_string(),
+                _ => unreachable!(),
+            };
+
+            expr = Expression::MemberAccess {
+                expr: Box::new(expr),
+                ident: identifier,
+            }
+        }
+
+        expr
     }
 
     fn primary(&mut self) -> Expression {
@@ -364,6 +385,7 @@ impl Parser {
                 TokenKind::Ident(ident) => ident,
                 _ => unreachable!(),
             };
+
             Expression::Identifier(identifier.to_string())
         } else if let Some(literal) = self.matches(TokenKind::Literal(LiteralToken {
             kind: lexer::scanner::token::LiteralKind::Bool,
