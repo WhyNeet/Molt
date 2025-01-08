@@ -1,1 +1,1 @@
-@main @effect fun main() = println("Hello, world!")
+@main @effect(IO) fun main() = println("Hello, world!")
