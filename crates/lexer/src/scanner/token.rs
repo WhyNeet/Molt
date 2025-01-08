@@ -10,6 +10,29 @@ pub struct Token {
     pub col: usize,
 }
 
+impl Token {
+    pub fn as_ident(&self) -> Option<&str> {
+        match self.kind {
+            TokenKind::Ident(ref ident) => Some(ident),
+            _ => None,
+        }
+    }
+
+    pub fn as_keyword(&self) -> Option<Keyword> {
+        match self.kind {
+            TokenKind::Keyword(kw) => Some(kw),
+            _ => None,
+        }
+    }
+
+    pub fn as_literal(&self) -> Option<&Literal> {
+        match self.kind {
+            TokenKind::Literal(ref literal) => Some(literal),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenKind {
     /// Comment surrounded by /* */
