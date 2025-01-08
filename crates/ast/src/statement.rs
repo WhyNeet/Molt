@@ -9,6 +9,8 @@ pub enum Statement {
     VariableDeclaration {
         name: String,
         expr: Expression,
+        /// If type is not specified, infer it.
+        ty: Option<Type>,
     },
     FunctionDeclaration {
         name: String,
