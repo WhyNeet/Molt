@@ -6,7 +6,7 @@ annotated = { annotation " " } decl_stmt ;
 
 decl_stmt = var_decl | fun_decl ;
 
-var_decl = "let" IDENTIFIER "=" expression ";" ;
+var_decl = "let" IDENTIFIER [ ":" TYPE ] "=" expression ";" ;
 
 fun_decl = "fun" IDENTIFIER "(" [ parameters ] ")" [ "->" TYPE ] ( "=" expression | ";" ) ;
 parameters = IDENTIFIER ":" TYPE { "," IDENTIFIER ":" TYPE } ;
