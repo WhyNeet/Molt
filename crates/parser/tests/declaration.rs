@@ -20,6 +20,24 @@ fn variable_declaration_works() {
         Statement::VariableDeclaration {
             name: "x".to_string(),
             expr: Expression::Literal(Literal::Number(Number::Int32(1))),
+            ty: None
+        }
+    );
+}
+
+#[test]
+fn variable_explicit_type_declaration_works() {
+    let input = r#"let x: u8 = 1;"#;
+    let tokens = Scanner::tokenize(input).collect();
+
+    let tree = Parser::new(tokens).parse();
+
+    assert_eq!(
+        tree[0],
+        Statement::VariableDeclaration {
+            name: "x".to_string(),
+            expr: Expression::Literal(Literal::Number(Number::Int32(1))),
+            ty: Some(Type::UInt8)
         }
     );
 }
