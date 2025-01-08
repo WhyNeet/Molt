@@ -427,7 +427,7 @@ impl<'a> Scanner<'a> {
     }
 
     fn identifier(&mut self) -> TokenKind {
-        while !self.is_at_end() && self.peek().is_ascii_alphanumeric() {
+        while !self.is_at_end() && (self.peek().is_ascii_alphanumeric() || self.peek() == '_') {
             self.advance();
         }
 
