@@ -243,11 +243,19 @@ impl Parser {
     fn var_decl(&mut self) -> Statement {
         let identifier = self
             .matches(TokenKind::Ident(String::new()))
-            .expect("expected identifier.");
+            .expect("expected identifier.")
+            .as_ident()
+            .unwrap()
+            .to_string();
 
-        let identifier = match &identifier.kind {
-            TokenKind::Ident(ident) => ident.to_string(),
-            _ => panic!("expected identifier."),
+        let ty = if self.matches(TokenKind::Colon).is_some() {
+            self.matches(TokenKind::Ident(String::new()))
+                .expect("expected type.")
+                .as_ident()
+                .map(Type::try_from)
+                .map(|ty| ty.unwrap())
+        } else {
+            None
         };
 
         if self.matches(TokenKind::Eq).is_none() {
@@ -263,6 +271,7 @@ impl Parser {
         Statement::VariableDeclaration {
             name: identifier,
             expr: expression,
+            ty,
         }
     }
 
