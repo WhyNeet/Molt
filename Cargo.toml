@@ -5,5 +5,5 @@ members = [
   "crates/lexer",
   "crates/molt",
   "crates/parser",
-  "crates/iast",
+  "crates/iast", "crates/checker",
 ]

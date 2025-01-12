@@ -10,6 +10,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "checker"
+version = "0.1.0"
+dependencies = [
+ "ast",
+ "iast",
+]
+
+[[package]]
+name = "iast"
+version = "0.1.0"
+dependencies = [
+ "ast",
+]
+
+[[package]]
 name = "lexer"
 version = "0.1.0"
 
@@ -17,6 +32,7 @@ version = "0.1.0"
 name = "molt"
 version = "0.1.0"
 dependencies = [
+ "checker",
  "lexer",
  "parser",
 ]
@@ -27,11 +43,4 @@ version = "0.1.0"
 dependencies = [
  "ast",
  "lexer",
-]
-
-[[package]]
-name = "tast"
-version = "0.1.0"
-dependencies = [
- "ast",
 ]
