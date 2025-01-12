@@ -1,4 +1,4 @@
-use std::{iter::Peekable, mem};
+use std::{iter::Peekable, mem, rc::Rc};
 
 use ast::{
     annotation::Annotation,
@@ -81,7 +81,7 @@ impl Parser {
 
         Statement::Annotated {
             annotations,
-            stmt: Box::new(statement),
+            stmt: Rc::new(statement),
         }
     }
 
@@ -173,7 +173,7 @@ impl Parser {
 
         Statement::FunctionDeclaration {
             name: identifier,
-            block,
+            block: block.map(Rc::new),
             return_type,
             parameters,
         }
@@ -183,7 +183,7 @@ impl Parser {
         let mut statements = vec![];
 
         while self.matches(TokenKind::CloseBrace).is_none() {
-            statements.push(self.declaration());
+            statements.push(Rc::new(self.declaration()));
         }
 
         Expression::Block(statements)
@@ -270,7 +270,7 @@ impl Parser {
 
         Statement::VariableDeclaration {
             name: identifier,
-            expr: expression,
+            expr: Rc::new(expression),
             ty,
         }
     }
@@ -279,7 +279,7 @@ impl Parser {
         let expression = self.expression();
 
         Statement::Expression {
-            expr: expression,
+            expr: Rc::new(expression),
             end_semi: self.matches(TokenKind::Semi).is_some(),
         }
     }
@@ -304,7 +304,7 @@ impl Parser {
 
         Expression::Assignment {
             identifier,
-            expr: Box::new(expression),
+            expr: Rc::new(expression),
         }
     }
 
@@ -315,9 +315,9 @@ impl Parser {
             let operator = self.prev().unwrap().try_into().unwrap();
             let right = self.logic_and();
             expr = Expression::Binary {
-                left: Box::new(expr),
+                left: Rc::new(expr),
                 operator,
-                right: Box::new(right),
+                right: Rc::new(right),
             };
         }
 
@@ -331,9 +331,9 @@ impl Parser {
             let operator = self.prev().unwrap().try_into().unwrap();
             let right = self.equality();
             expr = Expression::Binary {
-                left: Box::new(expr),
+                left: Rc::new(expr),
                 operator,
-                right: Box::new(right),
+                right: Rc::new(right),
             };
         }
 
@@ -347,9 +347,9 @@ impl Parser {
             let operator = self.prev().unwrap().try_into().unwrap();
             let right = self.comparison();
             expr = Expression::Binary {
-                left: Box::new(expr),
+                left: Rc::new(expr),
                 operator,
-                right: Box::new(right),
+                right: Rc::new(right),
             };
         }
 
@@ -363,9 +363,9 @@ impl Parser {
             let operator = self.prev().unwrap().try_into().unwrap();
             let right = self.term();
             expr = Expression::Binary {
-                left: Box::new(expr),
+                left: Rc::new(expr),
                 operator,
-                right: Box::new(right),
+                right: Rc::new(right),
             };
         }
 
@@ -383,9 +383,9 @@ impl Parser {
             let operator = self.prev().unwrap().try_into().unwrap();
             let right = self.factor();
             expr = Expression::Binary {
-                left: Box::new(expr),
+                left: Rc::new(expr),
                 operator,
-                right: Box::new(right),
+                right: Rc::new(right),
             };
         }
 
@@ -399,9 +399,9 @@ impl Parser {
             let operator = self.prev().unwrap().try_into().unwrap();
             let right = self.cast();
             expr = Expression::Binary {
-                left: Box::new(expr),
+                left: Rc::new(expr),
                 operator,
-                right: Box::new(right),
+                right: Rc::new(right),
             };
         }
 
@@ -426,7 +426,7 @@ impl Parser {
             let ty = Type::try_from(type_ident.as_str()).unwrap();
 
             expr = Expression::Cast {
-                expr: Box::new(expr),
+                expr: Rc::new(expr),
                 ty,
             };
         }
@@ -438,12 +438,12 @@ impl Parser {
         if self.matches(TokenKind::Bang).is_some() {
             Expression::Unary {
                 operator: Operator::Not,
-                expr: Box::new(self.unary()),
+                expr: Rc::new(self.unary()),
             }
         } else if self.matches(TokenKind::Minus).is_some() {
             Expression::Unary {
                 operator: Operator::Neg,
-                expr: Box::new(self.unary()),
+                expr: Rc::new(self.unary()),
             }
         } else {
             self.fn_call()
@@ -459,7 +459,7 @@ impl Parser {
             self.matches(TokenKind::CloseParen).expect("expected `)`");
 
             expr = Expression::Call {
-                expr: Box::new(expr),
+                expr: Rc::new(expr),
                 arguments,
             };
         }
@@ -502,7 +502,7 @@ impl Parser {
             };
 
             expr = Expression::MemberAccess {
-                expr: Box::new(expr),
+                expr: Rc::new(expr),
                 ident: identifier,
             }
         }
@@ -594,9 +594,9 @@ impl Parser {
         };
 
         Expression::Conditional {
-            condition: Box::new(condition),
+            condition: Rc::new(condition),
             body,
-            alternative: alternative.map(Box::new),
+            alternative: alternative.map(Rc::new),
         }
     }
 
@@ -607,7 +607,7 @@ impl Parser {
             panic!("expected `)`.");
         }
 
-        Expression::Grouping(Box::new(expression))
+        Expression::Grouping(Rc::new(expression))
     }
 
     fn literal(&mut self, literal: LiteralToken) -> Literal {

@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use ast::{
     annotation::Annotation,
     expression::Expression,
@@ -19,7 +21,7 @@ fn variable_declaration_works() {
         tree[0],
         Statement::VariableDeclaration {
             name: "x".to_string(),
-            expr: Expression::Literal(Literal::Number(Number::Int32(1))),
+            expr: Rc::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
             ty: None
         }
     );
@@ -36,7 +38,7 @@ fn variable_explicit_type_declaration_works() {
         tree[0],
         Statement::VariableDeclaration {
             name: "x".to_string(),
-            expr: Expression::Literal(Literal::Number(Number::Int32(1))),
+            expr: Rc::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
             ty: Some(Type::UInt8)
         }
     );
@@ -53,11 +55,11 @@ fn function_declaration_works() {
         tree[0],
         Statement::FunctionDeclaration {
             name: "square".to_string(),
-            block: Some(Expression::Binary {
-                left: Box::new(Expression::Identifier("x".to_string())),
+            block: Some(Rc::new(Expression::Binary {
+                left: Rc::new(Expression::Identifier("x".to_string())),
                 operator: Operator::Mul,
-                right: Box::new(Expression::Identifier("x".to_string()))
-            }),
+                right: Rc::new(Expression::Identifier("x".to_string()))
+            })),
             return_type: Type::Int32,
             parameters: vec![("x".to_string(), Type::Int32)],
         }
@@ -78,7 +80,7 @@ fn extern_functions_work() {
                 arguments: vec![],
                 name: "extern".to_string()
             }],
-            stmt: Box::new(Statement::FunctionDeclaration {
+            stmt: Rc::new(Statement::FunctionDeclaration {
                 name: "printf".to_string(),
                 block: None,
                 return_type: Type::Int32,

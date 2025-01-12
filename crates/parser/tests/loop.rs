@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use ast::{
     expression::Expression,
     literal::{Literal, Number},
@@ -18,19 +20,19 @@ fn loop_works() {
     assert_eq!(
         tree[0],
         Statement::Expression {
-            expr: Expression::Loop(vec![
-                Statement::Expression {
-                    expr: Expression::Assignment {
+            expr: Rc::new(Expression::Loop(vec![
+                Rc::new(Statement::Expression {
+                    expr: Rc::new(Expression::Assignment {
                         identifier: "a".to_string(),
-                        expr: Box::new(Expression::Literal(Literal::Number(Number::Int32(1))))
-                    },
+                        expr: Rc::new(Expression::Literal(Literal::Number(Number::Int32(1))))
+                    }),
                     end_semi: true
-                },
-                Statement::Expression {
-                    expr: Expression::Break,
+                }),
+                Rc::new(Statement::Expression {
+                    expr: Rc::new(Expression::Break),
                     end_semi: true
-                }
-            ]),
+                })
+            ])),
             end_semi: false
         }
     );
