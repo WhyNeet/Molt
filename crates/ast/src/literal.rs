@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     Number(Number),
     Str(String),
@@ -7,7 +7,7 @@ pub enum Literal {
     Unit,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Number {
     UInt8(u8),
     UInt16(u16),

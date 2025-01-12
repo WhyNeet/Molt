@@ -1,46 +1,48 @@
+use std::rc::Rc;
+
 use crate::{
     literal::{Literal, Type},
     operator::Operator,
     statement::Statement,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     Binary {
-        left: Box<Expression>,
+        left: Rc<Expression>,
         operator: Operator,
-        right: Box<Expression>,
+        right: Rc<Expression>,
     },
     Unary {
         operator: Operator,
-        expr: Box<Expression>,
+        expr: Rc<Expression>,
     },
-    Grouping(Box<Expression>),
+    Grouping(Rc<Expression>),
     Identifier(String),
     Literal(Literal),
     Assignment {
         identifier: String,
-        expr: Box<Expression>,
+        expr: Rc<Expression>,
     },
-    Block(Vec<Statement>),
+    Block(Vec<Rc<Statement>>),
     Conditional {
-        condition: Box<Expression>,
-        body: Vec<Statement>,
-        alternative: Option<Box<Expression>>,
+        condition: Rc<Expression>,
+        body: Vec<Rc<Statement>>,
+        alternative: Option<Rc<Expression>>,
     },
     MemberAccess {
-        expr: Box<Expression>,
+        expr: Rc<Expression>,
         ident: String,
     },
     Call {
-        expr: Box<Expression>,
+        expr: Rc<Expression>,
         arguments: Vec<Expression>,
     },
     Cast {
-        expr: Box<Expression>,
+        expr: Rc<Expression>,
         ty: Type,
     },
-    Loop(Vec<Statement>),
+    Loop(Vec<Rc<Statement>>),
     Continue,
     Break,
 }
