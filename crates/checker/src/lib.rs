@@ -11,7 +11,7 @@ use ast::{
 use environment::Environment;
 use iast::{
     effect::Effect,
-    expression::Expression as CheckedExpression,
+    expression::{Expression as CheckedExpression, ExpressionKind},
     statement::{Statement as CheckedStatement, StatementKind},
 };
 
@@ -95,7 +95,7 @@ impl Checker {
             effects: checked.effects.clone(),
             stmt: Rc::new(StatementKind::VariableDeclaration {
                 name,
-                ty: Some(checked.ty),
+                ty: checked.ty,
                 expr: checked,
             }),
         }
@@ -112,17 +112,25 @@ impl Checker {
 
     fn expression(&mut self, expr: Rc<Expression>, expect_type: Option<Type>) -> CheckedExpression {
         match expr.as_ref() {
-            Expression::Break | Expression::Continue => CheckedExpression {
-                expr,
+            Expression::Break => CheckedExpression {
+                expr: Rc::new(ExpressionKind::Break),
+                effects: vec![],
+                ty: Type::Unit,
+            },
+            Expression::Continue => CheckedExpression {
+                expr: Rc::new(ExpressionKind::Continue),
                 effects: vec![],
                 ty: Type::Unit,
             },
             Expression::Literal(literal) => CheckedExpression {
                 effects: vec![],
                 ty: literal.get_type(),
-                expr,
+                expr: Rc::new(ExpressionKind::Literal(Rc::clone(literal))),
             },
-            Expression::Unary { expr: sub_expr, .. } => {
+            Expression::Unary {
+                expr: sub_expr,
+                operator,
+            } => {
                 let checked = self.expression(Rc::clone(sub_expr), expect_type);
                 if let Some(expect_type) = expect_type {
                     if checked.ty != expect_type {
@@ -133,10 +141,17 @@ impl Checker {
                 CheckedExpression {
                     effects: checked.effects.clone(),
                     ty: checked.ty,
-                    expr,
+                    expr: Rc::new(ExpressionKind::Unary {
+                        operator: *operator,
+                        expr: Rc::new(checked),
+                    }),
                 }
             }
-            Expression::Binary { left, right, .. } => {
+            Expression::Binary {
+                left,
+                right,
+                operator,
+            } => {
                 let left_checked = self.expression(Rc::clone(left), expect_type);
                 let right_checked = self.expression(Rc::clone(right), expect_type);
 
@@ -150,9 +165,13 @@ impl Checker {
                 }
 
                 CheckedExpression {
-                    effects: [left_checked.effects, right_checked.effects].concat(),
-                    expr,
+                    effects: [left_checked.effects.clone(), right_checked.effects.clone()].concat(),
                     ty: left_checked.ty,
+                    expr: Rc::new(ExpressionKind::Binary {
+                        left: Rc::new(left_checked),
+                        operator: *operator,
+                        right: Rc::new(right_checked),
+                    }),
                 }
             }
             Expression::Grouping(sub_expr) => {
@@ -165,9 +184,9 @@ impl Checker {
                 }
 
                 CheckedExpression {
-                    effects: checked.effects,
-                    expr,
+                    effects: checked.effects.clone(),
                     ty: checked.ty,
+                    expr: Rc::new(ExpressionKind::Grouping(Rc::new(checked))),
                 }
             }
             Expression::MemberAccess { expr, ident } => todo!("member access"),
@@ -186,7 +205,7 @@ impl Checker {
                 CheckedExpression {
                     effects: vec![],
                     ty,
-                    expr,
+                    expr: Rc::new(ExpressionKind::Identifier(ident.to_string())),
                 }
             }
             Expression::Assignment {
@@ -212,9 +231,12 @@ impl Checker {
                 }
 
                 CheckedExpression {
-                    effects: checked.effects,
+                    effects: checked.effects.clone(),
                     ty,
-                    expr,
+                    expr: Rc::new(ExpressionKind::Assignment {
+                        identifier: identifier.to_string(),
+                        expr: Rc::new(checked),
+                    }),
                 }
             }
             Expression::Call { expr, arguments } => todo!("function type is not present yet"),
@@ -228,26 +250,29 @@ impl Checker {
                 }
 
                 CheckedExpression {
-                    effects: checked.effects,
+                    effects: checked.effects.clone(),
                     ty: *ty,
-                    expr,
+                    expr: Rc::new(ExpressionKind::Cast {
+                        expr: Rc::new(checked),
+                        ty: *ty,
+                    }),
                 }
             }
             Expression::Block(stmts) => {
-                let (effects, ty) = self.block_expr(stmts, expect_type);
+                let (stmts, effects, ty) = self.block_expr(stmts, expect_type);
 
                 CheckedExpression {
                     effects,
-                    expr,
+                    expr: Rc::new(ExpressionKind::Block(stmts)),
                     ty: ty.unwrap_or(Type::Unit),
                 }
             }
             Expression::Loop(stmts) => {
-                let (effects, _) = self.block_expr(stmts, expect_type);
+                let (stmts, effects, _) = self.block_expr(stmts, expect_type);
 
                 CheckedExpression {
                     effects,
-                    expr,
+                    expr: Rc::new(ExpressionKind::Loop(stmts)),
                     ty: Type::Unit,
                 }
             }
@@ -257,7 +282,7 @@ impl Checker {
                 alternative,
             } => {
                 let condition_checked = self.expression(Rc::clone(condition), expect_type);
-                let (body_effects, body_ty) = self.block_expr(body, expect_type);
+                let (stmts, body_effects, body_ty) = self.block_expr(body, expect_type);
                 let alternative_checked = alternative
                     .as_ref()
                     .map(|alt| self.expression(Rc::clone(alt), expect_type));
@@ -268,12 +293,19 @@ impl Checker {
 
                 CheckedExpression {
                     effects: [
-                        condition_checked.effects,
+                        condition_checked.effects.clone(),
                         body_effects,
-                        alternative_checked.map(|alt| alt.effects).unwrap_or(vec![]),
+                        alternative_checked
+                            .clone()
+                            .map(|alt| alt.effects)
+                            .unwrap_or(vec![]),
                     ]
                     .concat(),
-                    expr,
+                    expr: Rc::new(ExpressionKind::Conditional {
+                        condition: Rc::new(condition_checked),
+                        body: stmts,
+                        alternative: alternative_checked.map(Rc::new),
+                    }),
                     ty: body_ty.unwrap_or(Type::Unit),
                 }
             }
@@ -284,24 +316,26 @@ impl Checker {
         &mut self,
         stmts: &Vec<Rc<Statement>>,
         expect_type: Option<Type>,
-    ) -> (Vec<Effect>, Option<Type>) {
+    ) -> (Vec<Rc<CheckedStatement>>, Vec<Effect>, Option<Type>) {
         let environment = Rc::new(Environment::with_enclosing(Rc::clone(
             &self.environment.borrow(),
         )));
 
         let prev_environment = self.environment.replace(environment);
 
+        let mut checked_stmts = vec![];
         let mut effects = vec![];
 
         if stmts.len() > 1 {
             for idx in 0..(stmts.len() - 1) {
-                let mut checked = self.statement(Rc::clone(&stmts[idx]), None);
-                effects.append(&mut checked.effects);
+                let checked = self.statement(Rc::clone(&stmts[idx]), None);
+                effects.append(&mut checked.effects.clone());
+                checked_stmts.push(Rc::new(checked))
             }
         }
 
         let ty = if let Some(stmt) = stmts.last() {
-            let mut checked = self.statement(Rc::clone(stmt), None);
+            let checked = self.statement(Rc::clone(stmt), None);
 
             let ty = match checked.stmt.as_ref() {
                 StatementKind::Expression { expr, end_semi } if *end_semi == false => {
@@ -316,7 +350,8 @@ impl Checker {
                 _ => None,
             };
 
-            effects.append(&mut checked.effects);
+            effects.append(&mut checked.effects.clone());
+            checked_stmts.push(Rc::new(checked));
 
             ty
         } else {
@@ -325,6 +360,6 @@ impl Checker {
 
         self.environment.replace(prev_environment);
 
-        (effects, ty)
+        (checked_stmts, effects, ty)
     }
 }
