@@ -20,8 +20,7 @@ pub enum StatementKind {
     VariableDeclaration {
         name: String,
         expr: Expression,
-        /// If type is not specified, infer it.
-        ty: Option<Type>,
+        ty: Type,
     },
     FunctionDeclaration {
         name: String,
