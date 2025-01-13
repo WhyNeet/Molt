@@ -21,7 +21,9 @@ fn variable_declaration_works() {
         tree[0],
         Statement::VariableDeclaration {
             name: "x".to_string(),
-            expr: Rc::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
+            expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                Number::Int32(1)
+            )))),
             ty: None
         }
     );
@@ -38,7 +40,9 @@ fn variable_explicit_type_declaration_works() {
         tree[0],
         Statement::VariableDeclaration {
             name: "x".to_string(),
-            expr: Rc::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
+            expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                Number::Int32(1)
+            )))),
             ty: Some(Type::UInt8)
         }
     );

@@ -24,7 +24,9 @@ fn loop_works() {
                 Rc::new(Statement::Expression {
                     expr: Rc::new(Expression::Assignment {
                         identifier: "a".to_string(),
-                        expr: Rc::new(Expression::Literal(Literal::Number(Number::Int32(1))))
+                        expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                            Number::Int32(1)
+                        ))))
                     }),
                     end_semi: true
                 }),

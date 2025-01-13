@@ -21,12 +21,18 @@ fn expression_works() {
         Statement::Expression {
             expr: Rc::new(Expression::Binary {
                 left: Rc::new(Expression::Binary {
-                    left: Rc::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
+                    left: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                        Number::Int32(1)
+                    )))),
                     operator: Operator::Mul,
-                    right: Rc::new(Expression::Literal(Literal::Number(Number::Int32(3))))
+                    right: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                        Number::Int32(3)
+                    ))))
                 }),
                 operator: Operator::Add,
-                right: Rc::new(Expression::Literal(Literal::Number(Number::Int32(2))))
+                right: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                    Number::Int32(2)
+                ))))
             }),
             end_semi: false
         }
@@ -45,40 +51,50 @@ fn conditional_expressions_work() {
         Statement::Expression {
             expr: Rc::new(Expression::Binary {
                 left: Rc::new(Expression::Binary {
-                    left: Rc::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
+                    left: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                        Number::Int32(1)
+                    )))),
                     operator: Operator::Mul,
-                    right: Rc::new(Expression::Literal(Literal::Number(Number::Int32(3))))
+                    right: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                        Number::Int32(3)
+                    ))))
                 }),
                 operator: Operator::Add,
                 right: Rc::new(Expression::Conditional {
                     condition: Rc::new(Expression::Binary {
                         left: Rc::new(Expression::Identifier("a".to_string())),
                         operator: Operator::Gt,
-                        right: Rc::new(Expression::Literal(Literal::Number(Number::Int32(2))))
+                        right: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                            Number::Int32(2)
+                        ))))
                     }),
                     body: vec![Rc::new(Statement::Expression {
-                        expr: Rc::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
+                        expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                            Number::Int32(1)
+                        )))),
                         end_semi: false
                     })],
                     alternative: Some(Rc::new(Expression::Conditional {
                         condition: Rc::new(Expression::Binary {
                             left: Rc::new(Expression::Identifier("a".to_string())),
                             operator: Operator::Eq,
-                            right: Rc::new(Expression::Literal(Literal::Number(Number::Int32(4))))
+                            right: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                                Number::Int32(4)
+                            ))))
                         }),
                         body: vec![Rc::new(Statement::Expression {
                             expr: Rc::new(Expression::Unary {
                                 operator: Operator::Neg,
-                                expr: Rc::new(Expression::Literal(Literal::Number(Number::Int32(
-                                    5
+                                expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                                    Number::Int32(5)
                                 ))))
                             }),
                             end_semi: false
                         })],
                         alternative: Some(Rc::new(Expression::Block(vec![Rc::new(
                             Statement::Expression {
-                                expr: Rc::new(Expression::Literal(Literal::Number(Number::Int32(
-                                    2
+                                expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                                    Number::Int32(2)
                                 )))),
                                 end_semi: false
                             }
@@ -134,11 +150,15 @@ fn function_call_works() {
                     }),
                     arguments: vec![
                         Expression::Binary {
-                            left: Rc::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
+                            left: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                                Number::Int32(1)
+                            )))),
                             operator: Operator::Add,
-                            right: Rc::new(Expression::Literal(Literal::Number(Number::Int32(2))))
+                            right: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                                Number::Int32(2)
+                            ))))
                         },
-                        Expression::Literal(Literal::Number(Number::Int32(3)))
+                        Expression::Literal(Rc::new(Literal::Number(Number::Int32(3))))
                     ]
                 }),
                 arguments: vec![]
@@ -161,11 +181,15 @@ fn cast_works() {
             expr: Rc::new(Expression::Cast {
                 expr: Rc::new(Expression::Grouping(Rc::new(Expression::Binary {
                     left: Rc::new(Expression::Cast {
-                        expr: Rc::new(Expression::Literal(Literal::Number(Number::Int32(1)))),
+                        expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                            Number::Int32(1)
+                        )))),
                         ty: Type::UInt32
                     }),
                     operator: Operator::Add,
-                    right: Rc::new(Expression::Literal(Literal::Number(Number::UInt32(5))))
+                    right: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                        Number::UInt32(5)
+                    ))))
                 }))),
                 ty: Type::UInt64
             }),

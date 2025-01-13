@@ -527,7 +527,7 @@ impl Parser {
                 TokenKind::Literal(literal) => literal.clone(),
                 _ => unreachable!(),
             };
-            Expression::Literal(self.literal(literal))
+            Expression::Literal(Rc::new(self.literal(literal)))
         } else if self.matches(TokenKind::OpenParen).is_some() {
             self.grouping()
         } else if self.matches(TokenKind::OpenBrace).is_some() {
