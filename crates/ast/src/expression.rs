@@ -19,7 +19,7 @@ pub enum Expression {
     },
     Grouping(Rc<Expression>),
     Identifier(String),
-    Literal(Literal),
+    Literal(Rc<Literal>),
     Assignment {
         identifier: String,
         expr: Rc<Expression>,
