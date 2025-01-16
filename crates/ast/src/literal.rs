@@ -1,3 +1,5 @@
+use crate::expression::Expression;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     Number(Number),
@@ -21,7 +23,7 @@ pub enum Number {
     Float64(f64),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     UInt8,
     UInt16,
@@ -36,6 +38,10 @@ pub enum Type {
     Str,
     Char,
     Bool,
+    Callable {
+        parameters: Vec<Type>,
+        return_type: Box<Type>,
+    },
     Unit,
 }
 
