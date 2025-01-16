@@ -34,8 +34,6 @@ impl Token {
 pub enum TokenKind {
     /// Comment surrounded by /* */
     BlockComment { terminated: bool },
-    /// Comment after //
-    LineComment,
 
     /// An identifier or keyword, e.g. `ident` or `continue`.
     Ident(String),

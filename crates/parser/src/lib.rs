@@ -33,10 +33,7 @@ impl Parser {
         let mut statements = vec![];
 
         while !self.is_at_end() {
-            self.matches_either(&[
-                TokenKind::LineComment,
-                TokenKind::BlockComment { terminated: true },
-            ]);
+            self.matches_either(&[TokenKind::BlockComment { terminated: true }]);
 
             statements.push(self.declaration())
         }

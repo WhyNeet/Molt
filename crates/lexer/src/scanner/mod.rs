@@ -5,8 +5,6 @@ pub mod token;
 use keywords::Keyword;
 use token::{Base, Literal, LiteralKind, Token, TokenKind};
 
-const EOF_CHAR: char = '\0';
-
 pub struct Scanner<'a> {
     src: &'a str,
     start: usize,
@@ -177,7 +175,8 @@ impl<'a> Scanner<'a> {
                 '*' => TokenKind::Star,
                 '/' => {
                     if self.matches('/') {
-                        self.line_comment()
+                        self.line_comment();
+                        continue;
                     } else if self.matches('*') {
                         self.block_comment()
                     } else {
@@ -449,12 +448,10 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn line_comment(&mut self) -> TokenKind {
+    fn line_comment(&mut self) {
         while !self.is_at_end() && self.peek() != '\n' {
             self.advance();
         }
-
-        TokenKind::LineComment
     }
 
     fn block_comment(&mut self) -> TokenKind {
