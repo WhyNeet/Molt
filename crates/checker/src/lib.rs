@@ -1,6 +1,6 @@
 pub mod environment;
 
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, mem, rc::Rc};
 
 use ast::{
     annotation::Annotation,
@@ -14,6 +14,14 @@ use iast::{
     expression::{Expression as CheckedExpression, ExpressionKind},
     statement::{Statement as CheckedStatement, StatementKind},
 };
+
+fn type_cmp(ty: &Type, expect: &Type, exact: bool) -> bool {
+    if exact {
+        ty == expect
+    } else {
+        mem::discriminant(ty) == mem::discriminant(expect)
+    }
+}
 
 pub struct Checker {
     ast: Vec<Rc<Statement>>,
@@ -77,7 +85,7 @@ impl Checker {
         return_type: Type,
     ) -> CheckedStatement {
         let expr = if let Some(expr) = block {
-            Some(self.expression(expr, Some(return_type.clone())))
+            Some(self.expression(expr, Some(return_type.clone()), true))
         } else {
             None
         };
@@ -108,7 +116,7 @@ impl Checker {
         expr: &Rc<Expression>,
         ty: Option<Type>,
     ) -> CheckedStatement {
-        let checked = self.expression(Rc::clone(expr), ty.clone());
+        let checked = self.expression(Rc::clone(expr), ty.clone(), true);
 
         self.environment
             .borrow()
@@ -125,7 +133,7 @@ impl Checker {
     }
 
     fn expression_stmt(&mut self, expr: Rc<Expression>, end_semi: bool) -> CheckedStatement {
-        let expr = self.expression(expr, None);
+        let expr = self.expression(expr, None, false);
 
         CheckedStatement {
             effects: expr.effects.clone(),
@@ -133,7 +141,12 @@ impl Checker {
         }
     }
 
-    fn expression(&mut self, expr: Rc<Expression>, expect_type: Option<Type>) -> CheckedExpression {
+    fn expression(
+        &mut self,
+        expr: Rc<Expression>,
+        expect_type: Option<Type>,
+        exact: bool,
+    ) -> CheckedExpression {
         match expr.as_ref() {
             Expression::Break => CheckedExpression {
                 expr: Rc::new(ExpressionKind::Break),
@@ -154,10 +167,13 @@ impl Checker {
                 expr: sub_expr,
                 operator,
             } => {
-                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone());
+                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone(), exact);
                 if let Some(expect_type) = expect_type {
-                    if checked.ty != expect_type {
-                        panic!("[unary expression] expected type mismatch")
+                    if !type_cmp(&checked.ty, &expect_type, exact) {
+                        panic!(
+                            "[unary expression] expected type mismatch: `{:?}`, expected `{:?}`",
+                            checked.ty, expect_type
+                        )
                     }
                 }
 
@@ -175,11 +191,13 @@ impl Checker {
                 right,
                 operator,
             } => {
-                let left_checked = self.expression(Rc::clone(left), expect_type.clone());
-                let right_checked = self.expression(Rc::clone(right), expect_type.clone());
+                let left_checked = self.expression(Rc::clone(left), expect_type.clone(), exact);
+                let right_checked = self.expression(Rc::clone(right), expect_type.clone(), exact);
 
                 if let Some(expect_type) = expect_type {
-                    if left_checked.ty != expect_type || right_checked.ty != expect_type {
+                    if !type_cmp(&left_checked.ty, &expect_type, exact)
+                        || !type_cmp(&right_checked.ty, &expect_type, exact)
+                    {
                         panic!("[binary expression] expected type mismatch")
                     }
                 }
@@ -198,10 +216,10 @@ impl Checker {
                 }
             }
             Expression::Grouping(sub_expr) => {
-                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone());
+                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone(), exact);
 
                 if let Some(expect_type) = expect_type {
-                    if checked.ty != expect_type {
+                    if !type_cmp(&checked.ty, &expect_type, exact) {
                         panic!("[grouping expression] expected type mismatch")
                     }
                 }
@@ -220,8 +238,11 @@ impl Checker {
                     .get(ident)
                     .expect("[identifier expression] identifier not found");
                 if let Some(expect_type) = expect_type {
-                    if ty != expect_type {
-                        panic!("[identifier expression] expected type mismatch")
+                    if !type_cmp(&ty, &expect_type, exact) {
+                        panic!(
+                          "[identifier expression] expected type mismatch: `{:?}`, expected `{:?}`",
+                          ty, expect_type
+                      )
                     }
                 }
 
@@ -247,7 +268,7 @@ impl Checker {
                     }
                 }
 
-                let checked = self.expression(Rc::clone(sub_expr), expect_type);
+                let checked = self.expression(Rc::clone(sub_expr), expect_type, exact);
 
                 if ty != checked.ty {
                     panic!("[cast expression] expected type mismatch")
@@ -262,12 +283,75 @@ impl Checker {
                     }),
                 }
             }
-            Expression::Call { expr, arguments } => todo!("function type is not present yet"),
-            Expression::Cast { expr: sub_expr, ty } => {
-                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone());
+            Expression::Call {
+                expr: sub_expr,
+                arguments,
+            } => {
+                let checked = self.expression(
+                    Rc::clone(sub_expr),
+                    Some(Type::Callable {
+                        parameters: vec![],
+                        return_type: Box::new(Type::Unit),
+                    }),
+                    false,
+                );
+                let mut effects = checked.effects.clone();
+
+                let (return_type, arguments) = match checked.ty.clone() {
+                    Type::Callable {
+                        parameters,
+                        return_type,
+                    } => {
+                        if arguments.len() != parameters.len() {
+                            panic!(
+                                "[call expression] wrong number of arguments: {}, expected {}",
+                                arguments.len(),
+                                parameters.len()
+                            )
+                        }
+
+                        let arguments = arguments
+                            .iter()
+                            .map(Rc::clone)
+                            .enumerate()
+                            .map(|(idx, arg)| {
+                                self.expression(arg, Some(parameters[idx].clone()), true)
+                            })
+                            .collect::<Vec<CheckedExpression>>();
+
+                        for idx in 0..parameters.len() {
+                            for effect in arguments[idx].effects.iter() {
+                                if !effects.contains(effect) {
+                                    effects.push(*effect)
+                                }
+                            }
+                        }
+
+                        (return_type, arguments)
+                    }
+                    _ => panic!("[call expression] expression is not callable"),
+                };
 
                 if let Some(ref expect_type) = expect_type {
-                    if ty != expect_type {
+                    if !type_cmp(&return_type, &expect_type, exact) {
+                        panic!("[call expression] callable return type mismatch: `{:?}`, expected `{:?}`", return_type, expect_type);
+                    }
+                }
+
+                CheckedExpression {
+                    effects,
+                    ty: (&*return_type).clone(),
+                    expr: Rc::new(ExpressionKind::Call {
+                        expr: Rc::new(checked),
+                        arguments,
+                    }),
+                }
+            }
+            Expression::Cast { expr: sub_expr, ty } => {
+                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone(), exact);
+
+                if let Some(ref expect_type) = expect_type {
+                    if !type_cmp(&ty, &expect_type, exact) {
                         panic!("[cast expression] expected type mismatch")
                     }
                 }
@@ -304,11 +388,12 @@ impl Checker {
                 body,
                 alternative,
             } => {
-                let condition_checked = self.expression(Rc::clone(condition), expect_type.clone());
+                let condition_checked =
+                    self.expression(Rc::clone(condition), Some(Type::Bool), true);
                 let (stmts, body_effects, body_ty) = self.block_expr(body, expect_type.clone());
                 let alternative_checked = alternative
                     .as_ref()
-                    .map(|alt| self.expression(Rc::clone(alt), expect_type));
+                    .map(|alt| self.expression(Rc::clone(alt), expect_type, true));
 
                 if body_ty.as_ref() != alternative_checked.as_ref().map(|alt| &alt.ty) {
                     panic!("[conditional expression] branch type mismatch")
