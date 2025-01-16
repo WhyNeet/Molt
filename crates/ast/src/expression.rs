@@ -36,7 +36,7 @@ pub enum Expression {
     },
     Call {
         expr: Rc<Expression>,
-        arguments: Vec<Expression>,
+        arguments: Vec<Rc<Expression>>,
     },
     Cast {
         expr: Rc<Expression>,
