@@ -58,10 +58,10 @@ impl Checker {
                 name.clone(),
                 block.as_ref().map(Rc::clone),
                 parameters,
-                *return_type,
+                return_type.clone(),
             ),
             Statement::VariableDeclaration { expr, name, ty } => {
-                self.var_decl(name.to_string(), expr, *ty)
+                self.var_decl(name.to_string(), expr, ty.clone())
             }
             Statement::Expression { expr, end_semi } => {
                 self.expression_stmt(Rc::clone(expr), *end_semi)
@@ -76,7 +76,30 @@ impl Checker {
         parameters: &Vec<(String, Type)>,
         return_type: Type,
     ) -> CheckedStatement {
-        todo!()
+        let expr = if let Some(expr) = block {
+            Some(self.expression(expr, Some(return_type.clone())))
+        } else {
+            None
+        };
+
+        let fn_type = Type::Callable {
+            parameters: parameters.iter().map(|(_, ty)| ty.clone()).collect(),
+            return_type: Box::new(return_type.clone()),
+        };
+
+        if self.environment.borrow().declare(name.clone(), fn_type) {
+            panic!("[function declaration] function `{name}` already exists.");
+        }
+
+        CheckedStatement {
+            effects: expr.clone().map(|expr| expr.effects).unwrap_or(vec![]),
+            stmt: Rc::new(StatementKind::FunctionDeclaration {
+                name,
+                block: expr,
+                return_type,
+                parameters: parameters.clone(),
+            }),
+        }
     }
 
     fn var_decl(
@@ -85,17 +108,17 @@ impl Checker {
         expr: &Rc<Expression>,
         ty: Option<Type>,
     ) -> CheckedStatement {
-        let checked = self.expression(Rc::clone(expr), ty);
+        let checked = self.expression(Rc::clone(expr), ty.clone());
 
         self.environment
             .borrow()
-            .declare(name.clone(), ty.unwrap_or(checked.ty));
+            .declare(name.clone(), ty.unwrap_or(checked.ty.clone()));
 
         CheckedStatement {
             effects: checked.effects.clone(),
             stmt: Rc::new(StatementKind::VariableDeclaration {
                 name,
-                ty: checked.ty,
+                ty: checked.ty.clone(),
                 expr: checked,
             }),
         }
@@ -131,7 +154,7 @@ impl Checker {
                 expr: sub_expr,
                 operator,
             } => {
-                let checked = self.expression(Rc::clone(sub_expr), expect_type);
+                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone());
                 if let Some(expect_type) = expect_type {
                     if checked.ty != expect_type {
                         panic!("[unary expression] expected type mismatch")
@@ -140,7 +163,7 @@ impl Checker {
 
                 CheckedExpression {
                     effects: checked.effects.clone(),
-                    ty: checked.ty,
+                    ty: checked.ty.clone(),
                     expr: Rc::new(ExpressionKind::Unary {
                         operator: *operator,
                         expr: Rc::new(checked),
@@ -152,8 +175,8 @@ impl Checker {
                 right,
                 operator,
             } => {
-                let left_checked = self.expression(Rc::clone(left), expect_type);
-                let right_checked = self.expression(Rc::clone(right), expect_type);
+                let left_checked = self.expression(Rc::clone(left), expect_type.clone());
+                let right_checked = self.expression(Rc::clone(right), expect_type.clone());
 
                 if let Some(expect_type) = expect_type {
                     if left_checked.ty != expect_type || right_checked.ty != expect_type {
@@ -166,7 +189,7 @@ impl Checker {
 
                 CheckedExpression {
                     effects: [left_checked.effects.clone(), right_checked.effects.clone()].concat(),
-                    ty: left_checked.ty,
+                    ty: left_checked.ty.clone(),
                     expr: Rc::new(ExpressionKind::Binary {
                         left: Rc::new(left_checked),
                         operator: *operator,
@@ -175,7 +198,7 @@ impl Checker {
                 }
             }
             Expression::Grouping(sub_expr) => {
-                let checked = self.expression(Rc::clone(sub_expr), expect_type);
+                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone());
 
                 if let Some(expect_type) = expect_type {
                     if checked.ty != expect_type {
@@ -185,7 +208,7 @@ impl Checker {
 
                 CheckedExpression {
                     effects: checked.effects.clone(),
-                    ty: checked.ty,
+                    ty: checked.ty.clone(),
                     expr: Rc::new(ExpressionKind::Grouping(Rc::new(checked))),
                 }
             }
@@ -218,8 +241,8 @@ impl Checker {
                     .get(identifier)
                     .expect("[assignment expression] identifier not found");
 
-                if let Some(expect_type) = expect_type {
-                    if expect_type != Type::Unit {
+                if let Some(ref expect_type) = expect_type {
+                    if expect_type != &Type::Unit {
                         panic!("[assignment expression] assignment only produces Unit type as a result");
                     }
                 }
@@ -241,20 +264,20 @@ impl Checker {
             }
             Expression::Call { expr, arguments } => todo!("function type is not present yet"),
             Expression::Cast { expr: sub_expr, ty } => {
-                let checked = self.expression(Rc::clone(sub_expr), expect_type);
+                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone());
 
-                if let Some(expect_type) = expect_type {
-                    if *ty != expect_type {
+                if let Some(ref expect_type) = expect_type {
+                    if ty != expect_type {
                         panic!("[cast expression] expected type mismatch")
                     }
                 }
 
                 CheckedExpression {
                     effects: checked.effects.clone(),
-                    ty: *ty,
+                    ty: ty.clone(),
                     expr: Rc::new(ExpressionKind::Cast {
                         expr: Rc::new(checked),
-                        ty: *ty,
+                        ty: ty.clone(),
                     }),
                 }
             }
@@ -281,13 +304,13 @@ impl Checker {
                 body,
                 alternative,
             } => {
-                let condition_checked = self.expression(Rc::clone(condition), expect_type);
-                let (stmts, body_effects, body_ty) = self.block_expr(body, expect_type);
+                let condition_checked = self.expression(Rc::clone(condition), expect_type.clone());
+                let (stmts, body_effects, body_ty) = self.block_expr(body, expect_type.clone());
                 let alternative_checked = alternative
                     .as_ref()
                     .map(|alt| self.expression(Rc::clone(alt), expect_type));
 
-                if body_ty != alternative_checked.as_ref().map(|alt| alt.ty) {
+                if body_ty.as_ref() != alternative_checked.as_ref().map(|alt| &alt.ty) {
                     panic!("[conditional expression] branch type mismatch")
                 }
 
@@ -345,7 +368,7 @@ impl Checker {
                         }
                     }
 
-                    Some(expr.ty)
+                    Some(expr.ty.clone())
                 }
                 _ => None,
             };

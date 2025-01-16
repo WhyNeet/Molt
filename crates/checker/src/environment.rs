@@ -27,7 +27,7 @@ impl Environment {
 
     pub fn get(&self, name: &str) -> Option<Type> {
         if let Some(ty) = self.declarations.borrow().get(name) {
-            Some(*ty)
+            Some(ty.clone())
         } else if let Some(ref enclosing) = self.enclosing {
             enclosing.get(name)
         } else {
