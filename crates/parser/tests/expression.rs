@@ -149,7 +149,7 @@ fn function_call_works() {
                         ident: "c".to_string()
                     }),
                     arguments: vec![
-                        Expression::Binary {
+                        Rc::new(Expression::Binary {
                             left: Rc::new(Expression::Literal(Rc::new(Literal::Number(
                                 Number::Int32(1)
                             )))),
@@ -157,8 +157,10 @@ fn function_call_works() {
                             right: Rc::new(Expression::Literal(Rc::new(Literal::Number(
                                 Number::Int32(2)
                             ))))
-                        },
-                        Expression::Literal(Rc::new(Literal::Number(Number::Int32(3))))
+                        }),
+                        Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                            Number::Int32(3)
+                        ))))
                     ]
                 }),
                 arguments: vec![]

@@ -464,7 +464,7 @@ impl Parser {
         expr
     }
 
-    fn arguments(&mut self) -> Vec<Expression> {
+    fn arguments(&mut self) -> Vec<Rc<Expression>> {
         let mut arguments = vec![];
 
         if self
@@ -476,11 +476,11 @@ impl Parser {
             .unwrap_or(false)
         {
             // if not `ident()`
-            arguments.push(self.expression());
+            arguments.push(Rc::new(self.expression()));
         }
 
         while self.matches(TokenKind::Comma).is_some() {
-            arguments.push(self.expression());
+            arguments.push(Rc::new(self.expression()));
         }
 
         arguments
