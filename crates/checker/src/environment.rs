@@ -20,6 +20,10 @@ impl Environment {
         Self::default()
     }
 
+    pub fn add_enclosing(&mut self, enclosing: Rc<Environment>) {
+        self.enclosing = Some(enclosing);
+    }
+
     pub fn with_enclosing(enclosing: Rc<Environment>) -> Self {
         Self {
             enclosing: Some(enclosing),

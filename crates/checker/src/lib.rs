@@ -87,7 +87,17 @@ impl Checker {
         annotations: Option<Vec<Annotation>>,
     ) -> CheckedStatement {
         let expr = if let Some(expr) = block {
-            Some(self.expression(expr, Some(return_type.clone()), true))
+            let fn_env = Environment::with_enclosing(Rc::clone(&*self.environment.borrow()));
+            for (param_name, param_type) in parameters {
+                fn_env.declare(param_name.clone(), param_type.clone(), vec![]);
+            }
+
+            let prev_env = self.environment.replace(Rc::new(fn_env));
+            let checked = Some(self.expression(expr, Some(return_type.clone()), true));
+
+            self.environment.replace(prev_env);
+
+            checked
         } else {
             None
         };
