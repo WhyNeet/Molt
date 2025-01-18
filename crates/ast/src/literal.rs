@@ -1,5 +1,3 @@
-use crate::expression::Expression;
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     Number(Number),
