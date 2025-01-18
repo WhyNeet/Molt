@@ -273,7 +273,7 @@ impl Checker {
                     expr: Rc::new(ExpressionKind::Grouping(Rc::new(checked))),
                 }
             }
-            Expression::MemberAccess { expr, ident } => todo!("member access"),
+            Expression::MemberAccess { .. } => todo!("member access"),
             Expression::Identifier(ident) => {
                 let decl = self
                     .environment
@@ -299,6 +299,8 @@ impl Checker {
                 identifier,
                 expr: sub_expr,
             } => {
+                panic!("assignment is not implemented yet");
+
                 let decl = self
                     .environment
                     .borrow()

@@ -9,7 +9,6 @@ pub enum Effect {
     State,
     NonDet,
     Env,
-    External,
 }
 
 impl TryFrom<&str> for Effect {
@@ -23,7 +22,6 @@ impl TryFrom<&str> for Effect {
             "async" => Ok(Self::Concurrency),
             "mut" => Ok(Self::State),
             "nondet" => Ok(Self::NonDet),
-            "ext" => Ok(Self::External),
             other => Err(format!("`{other}` is not a valid effect.")),
         }
     }
@@ -35,7 +33,6 @@ impl fmt::Display for Effect {
             Self::IO => "io",
             Self::Concurrency => "async",
             Self::Env => "env",
-            Self::External => "ext",
             Self::FileSystem => "fs",
             Self::Network => "net",
             Self::State => "mut",

@@ -1,1 +1,8 @@
-@main @effect(IO) fun main() = println("Hello, world!")
+@effect(io) @extern fun printf(s: str) -> i32;
+
+@effect(io) fun println(s: str) = {
+  printf(s + "\n");
+}
+
+
+@main @effect(io) fun main() = println("Hello, world!")
