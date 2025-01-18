@@ -354,11 +354,11 @@ impl Parser {
     }
 
     fn comparison(&mut self) -> Expression {
-        let mut expr = self.term();
+        let mut expr = self.shift();
 
         while self.matches_either(&[TokenKind::Gt, TokenKind::Ge, TokenKind::Lt, TokenKind::Le]) {
             let operator = self.prev().unwrap().try_into().unwrap();
-            let right = self.term();
+            let right = self.shift();
             expr = Expression::Binary {
                 left: Rc::new(expr),
                 operator,
@@ -370,7 +370,19 @@ impl Parser {
     }
 
     fn shift(&mut self) -> Expression {
-        todo!()
+        let mut expr = self.term();
+
+        while self.matches_either(&[TokenKind::LtLt, TokenKind::GtGt]) {
+            let operator = self.prev().unwrap().try_into().unwrap();
+            let right = self.term();
+            expr = Expression::Binary {
+                left: Rc::new(expr),
+                operator,
+                right: Rc::new(right),
+            };
+        }
+
+        expr
     }
 
     fn term(&mut self) -> Expression {
