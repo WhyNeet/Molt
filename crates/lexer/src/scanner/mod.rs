@@ -232,6 +232,8 @@ impl<'a> Scanner<'a> {
                 '>' => {
                     if self.matches('=') {
                         TokenKind::Ge
+                    } else if self.matches('>') {
+                        TokenKind::GtGt
                     } else {
                         TokenKind::Gt
                     }
@@ -241,6 +243,8 @@ impl<'a> Scanner<'a> {
                         TokenKind::Le
                     } else if self.matches('-') {
                         TokenKind::LArrow
+                    } else if self.matches('<') {
+                        TokenKind::LtLt
                     } else {
                         TokenKind::Lt
                     }

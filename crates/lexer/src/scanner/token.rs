@@ -114,8 +114,12 @@ pub enum TokenKind {
     Ne,
     /// `&&`
     AndAnd,
-    /// '||'
+    /// `||`
     OrOr,
+    /// `<<`
+    LtLt,
+    /// `>>`
+    GtGt,
 
     /// Unknown token, not expected by the lexer, e.g. "№"
     Unknown,
