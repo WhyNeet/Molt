@@ -67,6 +67,7 @@ impl Checker {
                 block.as_ref().map(Rc::clone),
                 parameters,
                 return_type.clone(),
+                annotations,
             ),
             Statement::VariableDeclaration { expr, name, ty } => {
                 self.var_decl(name.to_string(), expr, ty.clone())
@@ -83,6 +84,7 @@ impl Checker {
         block: Option<Rc<Expression>>,
         parameters: &Vec<(String, Type)>,
         return_type: Type,
+        annotations: Option<Vec<Annotation>>,
     ) -> CheckedStatement {
         let expr = if let Some(expr) = block {
             Some(self.expression(expr, Some(return_type.clone()), true))
@@ -95,12 +97,41 @@ impl Checker {
             return_type: Box::new(return_type.clone()),
         };
 
-        if self.environment.borrow().declare(name.clone(), fn_type) {
+        let fn_effects = annotations
+            .map(|annotations| annotations.into_iter().find(|a| a.name == "effect"))
+            .unwrap_or(None)
+            .map(|annotation| {
+                annotation
+                    .arguments
+                    .iter()
+                    .map(|s| s.as_str())
+                    .map(Effect::try_from)
+                    .map(Result::unwrap)
+                    .collect::<Vec<Effect>>()
+            })
+            .unwrap_or(vec![]);
+
+        if self
+            .environment
+            .borrow()
+            .declare(name.clone(), fn_type, fn_effects.clone())
+        {
             panic!("[function declaration] function `{name}` already exists.");
         }
 
+        if let Some(ref expr) = expr {
+            for effect in expr.effects.iter() {
+                if !fn_effects.contains(effect) {
+                    panic!(
+                        "[effect] effect `{}` is not specified inside `@effect` annotation.",
+                        effect
+                    );
+                }
+            }
+        }
+
         CheckedStatement {
-            effects: expr.clone().map(|expr| expr.effects).unwrap_or(vec![]),
+            effects: fn_effects,
             stmt: Rc::new(StatementKind::FunctionDeclaration {
                 name,
                 block: expr,
@@ -118,9 +149,11 @@ impl Checker {
     ) -> CheckedStatement {
         let checked = self.expression(Rc::clone(expr), ty.clone(), true);
 
-        self.environment
-            .borrow()
-            .declare(name.clone(), ty.unwrap_or(checked.ty.clone()));
+        self.environment.borrow().declare(
+            name.clone(),
+            ty.unwrap_or(checked.ty.clone()),
+            checked.effects.clone(),
+        );
 
         CheckedStatement {
             effects: checked.effects.clone(),
@@ -232,23 +265,23 @@ impl Checker {
             }
             Expression::MemberAccess { expr, ident } => todo!("member access"),
             Expression::Identifier(ident) => {
-                let ty = self
+                let decl = self
                     .environment
                     .borrow()
                     .get(ident)
                     .expect("[identifier expression] identifier not found");
                 if let Some(expect_type) = expect_type {
-                    if !type_cmp(&ty, &expect_type, exact) {
+                    if !type_cmp(&decl.ty, &expect_type, exact) {
                         panic!(
                           "[identifier expression] expected type mismatch: `{:?}`, expected `{:?}`",
-                          ty, expect_type
+                          decl.ty, expect_type
                       )
                     }
                 }
 
                 CheckedExpression {
-                    effects: vec![],
-                    ty,
+                    effects: decl.effects,
+                    ty: decl.ty,
                     expr: Rc::new(ExpressionKind::Identifier(ident.to_string())),
                 }
             }
@@ -256,7 +289,7 @@ impl Checker {
                 identifier,
                 expr: sub_expr,
             } => {
-                let ty = self
+                let decl = self
                     .environment
                     .borrow()
                     .get(identifier)
@@ -270,13 +303,13 @@ impl Checker {
 
                 let checked = self.expression(Rc::clone(sub_expr), expect_type, exact);
 
-                if ty != checked.ty {
+                if decl.ty != checked.ty {
                     panic!("[cast expression] expected type mismatch")
                 }
 
                 CheckedExpression {
                     effects: checked.effects.clone(),
-                    ty,
+                    ty: decl.ty,
                     expr: Rc::new(ExpressionKind::Assignment {
                         identifier: identifier.to_string(),
                         expr: Rc::new(checked),
