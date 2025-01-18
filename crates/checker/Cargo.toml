@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 ast = { path = "../ast" }
-iast = { path = "../iast" }
+tcast = { path = "../tcast" }

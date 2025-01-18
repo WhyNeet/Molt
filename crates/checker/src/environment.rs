@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use ast::literal::Type;
-use iast::effect::Effect;
+use tcast::effect::Effect;
 
 #[derive(Debug, Clone)]
 pub struct Declaration {

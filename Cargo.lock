@@ -14,14 +14,7 @@ name = "checker"
 version = "0.1.0"
 dependencies = [
  "ast",
- "iast",
-]
-
-[[package]]
-name = "iast"
-version = "0.1.0"
-dependencies = [
- "ast",
+ "tcast",
 ]
 
 [[package]]
@@ -43,4 +36,11 @@ version = "0.1.0"
 dependencies = [
  "ast",
  "lexer",
+]
+
+[[package]]
+name = "tcast"
+version = "0.1.0"
+dependencies = [
+ "ast",
 ]
