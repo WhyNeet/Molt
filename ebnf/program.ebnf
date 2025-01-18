@@ -1,8 +1,8 @@
 program = { statement } ;
 
-statement = annotated | expr_stmt ;
+statement = annotated | expr_stmt | return_stmt ;
 
-annotated = { annotation " " } decl_stmt ;
+annotated = { annotation " " } statement ;
 
 decl_stmt = var_decl | fun_decl ;
 
@@ -15,3 +15,5 @@ expr_stmt = expression ";" ;
 
 annotation = "@" IDENTIFIER [ "(" [ annotation_data ] ")" ] ;
 annotation_data = IDENTIFIER { "," IDENTIFIER } ;
+
+return_stmt = "return" expression ";" ;
