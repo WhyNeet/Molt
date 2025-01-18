@@ -35,13 +35,13 @@ impl Parser {
         while !self.is_at_end() {
             self.matches_either(&[TokenKind::BlockComment { terminated: true }]);
 
-            statements.push(self.declaration())
+            statements.push(self.statement())
         }
 
         statements
     }
 
-    fn declaration(&mut self) -> Statement {
+    fn statement(&mut self) -> Statement {
         if let Some(keyword) = self.matches(TokenKind::Keyword(Keyword::Fun)) {
             let keyword = match keyword.kind {
                 TokenKind::Keyword(keyword) => keyword,
@@ -51,6 +51,7 @@ impl Parser {
             match keyword {
                 Keyword::Let => self.var_decl(),
                 Keyword::Fun => self.fun_decl(),
+                Keyword::Return => self.return_stmt(),
                 _ => {
                     self.back();
                     self.expr_stmt()
@@ -67,6 +68,14 @@ impl Parser {
         }
     }
 
+    fn return_stmt(&mut self) -> Statement {
+        let expr = self.expression();
+
+        self.matches(TokenKind::Semi).expect("expected semicolon.");
+
+        Statement::Return(Rc::new(expr))
+    }
+
     fn annotated(&mut self) -> Statement {
         let mut annotations = vec![];
 
@@ -74,7 +83,7 @@ impl Parser {
             annotations.push(self.annotation());
         }
 
-        let statement = self.declaration();
+        let statement = self.statement();
 
         Statement::Annotated {
             annotations,
@@ -180,7 +189,7 @@ impl Parser {
         let mut statements = vec![];
 
         while self.matches(TokenKind::CloseBrace).is_none() {
-            statements.push(Rc::new(self.declaration()));
+            statements.push(Rc::new(self.statement()));
         }
 
         Expression::Block(statements)
