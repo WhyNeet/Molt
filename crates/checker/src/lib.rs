@@ -270,13 +270,15 @@ impl Checker {
                 right,
                 operator,
             } => {
-                let left_checked = self.expression(Rc::clone(left), expect_type.clone(), exact);
-                let right_checked = self.expression(Rc::clone(right), expect_type.clone(), exact);
+                let left_checked = self.expression(Rc::clone(left), None, exact);
 
-                if let Some(expect_type) = expect_type {
-                    if !type_cmp(&left_checked.ty, &expect_type, exact)
-                        || !type_cmp(&right_checked.ty, &expect_type, exact)
-                    {
+                let expr_result = operator.produces(left_checked.ty.clone());
+
+                let right_checked =
+                    self.expression(Rc::clone(right), Some(left_checked.ty.clone()), exact);
+
+                if let Some(ref expect_type) = expect_type {
+                    if !type_cmp(&expr_result, expect_type, exact) {
                         panic!("[binary expression] expected type mismatch")
                     }
                 }
@@ -286,7 +288,7 @@ impl Checker {
 
                 CheckedExpression {
                     effects: [left_checked.effects.clone(), right_checked.effects.clone()].concat(),
-                    ty: left_checked.ty.clone(),
+                    ty: expr_result,
                     expr: Rc::new(ExpressionKind::Binary {
                         left: Rc::new(left_checked),
                         operator: *operator,
