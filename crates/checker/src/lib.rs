@@ -6,6 +6,7 @@ use ast::{
     annotation::Annotation,
     expression::Expression,
     literal::{Type, Typed},
+    operator::Operator,
     statement::Statement,
 };
 use environment::Environment;
@@ -210,6 +211,11 @@ impl Checker {
                 expr: sub_expr,
                 operator,
             } => {
+                match operator {
+                    Operator::Neg | Operator::Not => (),
+                    other => panic!("`{other:?}` is not a unary operator"),
+                }
+
                 let checked = self.expression(Rc::clone(sub_expr), expect_type.clone(), exact);
                 if let Some(expect_type) = expect_type {
                     if !type_cmp(&checked.ty, &expect_type, exact) {
