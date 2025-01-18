@@ -32,4 +32,5 @@ pub enum StatementKind {
         annotations: Vec<Annotation>,
         stmt: Rc<Statement>,
     },
+    Return(Rc<Expression>),
 }
