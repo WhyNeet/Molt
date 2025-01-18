@@ -39,6 +39,8 @@ impl TryFrom<&Token> for Operator {
             TokenKind::Le => Ok(Self::Le),
             TokenKind::EqEq => Ok(Self::Eq),
             TokenKind::Ne => Ok(Self::Ne),
+            TokenKind::GtGt => Ok(Self::Shr),
+            TokenKind::LtLt => Ok(Self::Shl),
             ref other => Err(format!("unknown operator: `{other:?}`")),
         }
     }
