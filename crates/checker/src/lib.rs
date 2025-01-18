@@ -1,3 +1,4 @@
+pub mod context;
 pub mod environment;
 
 use std::{cell::RefCell, mem, rc::Rc};
@@ -9,6 +10,7 @@ use ast::{
     operator::Operator,
     statement::Statement,
 };
+use context::Context;
 use environment::Environment;
 use tcast::{
     effect::Effect,
@@ -27,6 +29,7 @@ fn type_cmp(ty: &Type, expect: &Type, exact: bool) -> bool {
 pub struct Checker {
     ast: Vec<Rc<Statement>>,
     environment: RefCell<Rc<Environment>>,
+    context: Option<Context>,
 }
 
 impl Checker {
@@ -34,6 +37,7 @@ impl Checker {
         Self {
             ast: ast.into_iter().map(Rc::new).collect(),
             environment: RefCell::new(Rc::new(Environment::new())),
+            context: Some(Context::Global),
         }
     }
 }
@@ -76,6 +80,28 @@ impl Checker {
             Statement::Expression { expr, end_semi } => {
                 self.expression_stmt(Rc::clone(expr), *end_semi)
             }
+            Statement::Return(expr) => self.return_stmt(Rc::clone(expr)),
+        }
+    }
+
+    fn return_stmt(&mut self, expr: Rc<Expression>) -> CheckedStatement {
+        let checked_expr = self.expression(expr, None, false);
+
+        match self.context.as_ref().unwrap() {
+            Context::Function(return_type) => {
+                if !type_cmp(&checked_expr.ty, return_type, true) {
+                    panic!(
+                        "mismatched return type: `{:?}`, expected `{return_type:?}`",
+                        checked_expr.ty
+                    )
+                }
+            }
+            _ => (),
+        }
+
+        CheckedStatement {
+            effects: checked_expr.effects.clone(),
+            stmt: Rc::new(StatementKind::Return(Rc::new(checked_expr))),
         }
     }
 
@@ -94,9 +120,13 @@ impl Checker {
             }
 
             let prev_env = self.environment.replace(Rc::new(fn_env));
+
+            let prev_cx = self.context.replace(Context::Function(return_type.clone()));
+
             let checked = Some(self.expression(expr, Some(return_type.clone()), true));
 
             self.environment.replace(prev_env);
+            self.context.replace(prev_cx.unwrap());
 
             checked
         } else {
