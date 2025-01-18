@@ -1,5 +1,7 @@
 use lexer::scanner::token::{Token, TokenKind};
 
+use crate::literal::Type;
+
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Operator {
     Add,
@@ -19,6 +21,15 @@ pub enum Operator {
     Ge,
     Lt,
     Le,
+}
+
+impl Operator {
+    pub fn produces(&self, operand_type: Type) -> Type {
+        match self {
+            Self::Eq | Self::Ge | Self::Gt | Self::Le | Self::Lt | Self::Ne => Type::Bool,
+            _ => operand_type,
+        }
+    }
 }
 
 impl TryFrom<&Token> for Operator {
