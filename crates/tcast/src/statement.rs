@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::expression::Expression;
+use crate::{expression::Expression, fn_attribute::FunctionAttribute};
 use ast::annotation::Annotation;
 use common::Type;
 
@@ -28,10 +28,7 @@ pub enum StatementKind {
         block: Option<Expression>,
         return_type: Type,
         parameters: Vec<(String, Type)>,
-    },
-    Annotated {
-        annotations: Vec<Annotation>,
-        stmt: Rc<Statement>,
+        attributes: Vec<FunctionAttribute>,
     },
     Return(Rc<Expression>),
 }
