@@ -336,11 +336,9 @@ impl Checker {
             }
             Expression::MemberAccess { .. } => todo!("member access"),
             Expression::Identifier(ident) => {
-                let decl = self
-                    .environment
-                    .borrow()
-                    .get(ident)
-                    .expect("[identifier expression] identifier not found");
+                let decl = self.environment.borrow().get(ident).expect(&format!(
+                    "[identifier expression] identifier not found: `{ident}`"
+                ));
                 if let Some(expect_type) = expect_type {
                     if !type_cmp(&decl.ty, &expect_type, exact) {
                         panic!(
@@ -454,7 +452,14 @@ impl Checker {
                 }
             }
             Expression::Cast { expr: sub_expr, ty } => {
-                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone(), exact);
+                let checked = self.expression(Rc::clone(sub_expr), None, false);
+
+                if !checked.ty.can_cast(ty) {
+                    panic!(
+                        "[cast expression] cannot cast `{:?}` into `{:?}`",
+                        checked.ty, ty
+                    )
+                }
 
                 if let Some(ref expect_type) = expect_type {
                     if !type_cmp(&ty, &expect_type, exact) {
