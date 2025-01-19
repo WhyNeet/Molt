@@ -49,3 +49,37 @@ impl TryFrom<&str> for Type {
 pub trait Typed {
     fn get_type(&self) -> Type;
 }
+
+impl Type {
+    pub fn is_numeric(&self) -> bool {
+        match self {
+            Type::Float32
+            | Type::Float64
+            | Type::Int8
+            | Type::UInt8
+            | Type::Int16
+            | Type::UInt16
+            | Type::Int32
+            | Type::UInt32
+            | Type::Int64
+            | Type::UInt64 => true,
+            _ => false,
+        }
+    }
+
+    pub fn can_cast(&self, other: &Type) -> bool {
+        if self == other {
+            return true;
+        }
+
+        match self {
+            Type::Str | Type::Callable { .. } | Type::Unit | Type::NoReturn => false,
+            Type::Char => match other {
+                Type::UInt8 => true,
+                _ => false,
+            },
+            Type::Bool => other.is_numeric(),
+            _ => other.is_numeric(),
+        }
+    }
+}
