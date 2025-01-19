@@ -1,4 +1,4 @@
-use ast::operator::Operator;
+use common::Operator;
 
 #[derive(Debug)]
 pub enum BinaryOperator {

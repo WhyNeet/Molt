@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use ast::literal::{Literal, Type};
+use common::{Literal, Type};
 
 use crate::operator::{BinaryOperator, UnaryOperator};
 
