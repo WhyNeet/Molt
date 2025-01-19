@@ -1,6 +1,5 @@
+use common::Type;
 use lexer::scanner::token::{Token, TokenKind};
-
-use crate::literal::Type;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Operator {

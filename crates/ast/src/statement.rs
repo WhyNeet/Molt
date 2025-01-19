@@ -1,6 +1,8 @@
 use std::rc::Rc;
 
-use crate::{annotation::Annotation, expression::Expression, literal::Type};
+use common::Type;
+
+use crate::{annotation::Annotation, expression::Expression};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {

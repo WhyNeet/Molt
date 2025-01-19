@@ -1,10 +1,8 @@
 use std::rc::Rc;
 
-use crate::{
-    literal::{Literal, Type},
-    operator::Operator,
-    statement::Statement,
-};
+use common::Type;
+
+use crate::{literal::Literal, operator::Operator, statement::Statement};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
