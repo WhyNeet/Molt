@@ -1,4 +1,4 @@
-use common::{Type, Typed};
+use crate::{Type, Typed};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {

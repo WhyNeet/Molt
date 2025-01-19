@@ -1,7 +1,6 @@
 use std::rc::Rc;
 
-use ast::literal::Literal;
-use common::{Operator, Type};
+use common::{Literal, Operator, Type};
 
 use crate::{effect::Effect, statement::Statement};
 

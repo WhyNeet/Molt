@@ -1,11 +1,7 @@
 use std::rc::Rc;
 
-use ast::{
-    expression::Expression,
-    literal::{Literal, Number},
-    statement::Statement,
-};
-use common::Operator;
+use ast::{expression::Expression, statement::Statement};
+use common::{Literal, Number, Operator};
 use lexer::scanner::Scanner;
 use parser::Parser;
 

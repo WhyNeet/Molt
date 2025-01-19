@@ -1,15 +1,10 @@
 use std::{mem, rc::Rc};
 
-use ast::{
-    annotation::Annotation,
-    expression::Expression,
-    literal::{Literal, Number},
-    statement::Statement,
-};
+use ast::{annotation::Annotation, expression::Expression, statement::Statement};
 use common::{
     keywords::Keyword,
     token::{Base, Literal as LiteralToken, LiteralKind, Token, TokenKind},
-    Operator, Type,
+    Literal, Number, Operator, Type,
 };
 
 pub struct Parser {
