@@ -477,7 +477,7 @@ impl Checker {
                 CheckedExpression {
                     effects,
                     expr: Rc::new(ExpressionKind::Block(stmts)),
-                    ty: ty.unwrap_or(Type::Unit),
+                    ty,
                 }
             }
             Expression::Loop(stmts) => {
@@ -501,8 +501,16 @@ impl Checker {
                     .as_ref()
                     .map(|alt| self.expression(Rc::clone(alt), expect_type, true));
 
-                if body_ty.as_ref() != alternative_checked.as_ref().map(|alt| &alt.ty) {
-                    panic!("[conditional expression] branch type mismatch")
+                let alt_ty = alternative_checked
+                    .as_ref()
+                    .map(|alt| alt.ty.clone())
+                    .unwrap_or(Type::Unit);
+
+                if body_ty != Type::NoReturn && alt_ty != Type::NoReturn && body_ty != alt_ty {
+                    panic!(
+                        "[conditional expression] branch type mismatch: `{:?}` and `{:?}`",
+                        body_ty, alt_ty
+                    )
                 }
 
                 CheckedExpression {
@@ -520,7 +528,11 @@ impl Checker {
                         body: stmts,
                         alternative: alternative_checked.map(Rc::new),
                     }),
-                    ty: body_ty.unwrap_or(Type::Unit),
+                    ty: if body_ty == Type::NoReturn {
+                        alt_ty
+                    } else {
+                        body_ty
+                    },
                 }
             }
         }
@@ -530,12 +542,14 @@ impl Checker {
         &mut self,
         stmts: &Vec<Rc<Statement>>,
         expect_type: Option<Type>,
-    ) -> (Vec<Rc<CheckedStatement>>, Vec<Effect>, Option<Type>) {
+    ) -> (Vec<Rc<CheckedStatement>>, Vec<Effect>, Type) {
         let environment = Rc::new(Environment::with_enclosing(Rc::clone(
             &self.environment.borrow(),
         )));
 
         let prev_environment = self.environment.replace(environment);
+
+        let mut ty = None;
 
         let mut checked_stmts = vec![];
         let mut effects = vec![];
@@ -549,9 +563,19 @@ impl Checker {
                 checked_stmts.push(Rc::new(checked));
 
                 match stmt_kind.as_ref() {
-                    StatementKind::Return(_) => {
-                        self.environment.replace(prev_environment);
-                        return (checked_stmts, effects, Some(Type::NoReturn));
+                    StatementKind::Return(expr) => {
+                        if let Some(ty) = ty {
+                            if ty != expr.ty {
+                                panic!(
+                                    "[block] expected return type: `{:?}`, got `{:?}`",
+                                    ty, expr.ty
+                                )
+                            }
+                        }
+                        ty = Some(Type::NoReturn);
+                    }
+                    StatementKind::Expression { end_semi, .. } if *end_semi => {
+                        panic!("[block] implicit return can only appear at the end of the block.")
                     }
                     _ => (),
                 }
@@ -561,7 +585,7 @@ impl Checker {
         let ty = if let Some(stmt) = stmts.last() {
             let checked = self.statement(Rc::clone(stmt), None);
 
-            let ty = match checked.stmt.as_ref() {
+            let ret_ty = match checked.stmt.as_ref() {
                 StatementKind::Expression { expr, end_semi } if *end_semi == false => {
                     if let Some(expect_type) = expect_type {
                         if expr.ty != expect_type {
@@ -569,18 +593,35 @@ impl Checker {
                         }
                     }
 
-                    Some(expr.ty.clone())
+                    expr.ty.clone()
                 }
-                StatementKind::Return(_) => Some(Type::NoReturn),
-                _ => None,
+                StatementKind::Return(_) => Type::NoReturn,
+                _ => Type::Unit,
             };
 
             effects.append(&mut checked.effects.clone());
             checked_stmts.push(Rc::new(checked));
 
-            ty
+            if let Some(ty) = ty {
+                if !type_cmp(&ret_ty, &ty, true) {
+                    panic!(
+                        "[block] expected return type: `{:?}`, got `{:?}`",
+                        ty, ret_ty
+                    )
+                }
+            }
+            ret_ty
         } else {
-            None
+            if let Some(ty) = ty {
+                if !type_cmp(&Type::Unit, &ty, true) {
+                    panic!(
+                        "[block] expected return type: `{:?}`, got `{:?}`",
+                        ty,
+                        Type::Unit
+                    )
+                }
+            }
+            Type::Unit
         };
 
         self.environment.replace(prev_environment);
