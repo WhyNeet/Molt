@@ -10,6 +10,7 @@ use environment::Environment;
 use tcast::{
     effect::Effect,
     expression::{Expression as CheckedExpression, ExpressionKind},
+    fn_attribute::FunctionAttribute,
     statement::{Statement as CheckedStatement, StatementKind},
 };
 
@@ -38,11 +39,11 @@ impl Checker {
 }
 
 impl Checker {
-    pub fn check(&mut self) -> Vec<CheckedStatement> {
+    pub fn check(&mut self) -> Vec<Rc<CheckedStatement>> {
         let mut statements = vec![];
 
         for idx in 0..self.ast.len() {
-            statements.push(self.statement(Rc::clone(&self.ast[idx]), None));
+            statements.push(Rc::new(self.statement(Rc::clone(&self.ast[idx]), None)));
         }
 
         statements
@@ -133,6 +134,32 @@ impl Checker {
             return_type: Box::new(return_type.clone()),
         };
 
+        let mut fn_attrs = vec![];
+
+        if let Some(main) = annotations
+            .as_ref()
+            .map(|a| a.iter().find(|a| a.name == "main"))
+            .unwrap_or(None)
+        {
+            if main.arguments.len() != 0 {
+                panic!("`@main` annotation cannot have arguments.")
+            }
+
+            fn_attrs.push(FunctionAttribute::Main);
+        }
+
+        if let Some(external) = annotations
+            .as_ref()
+            .map(|a| a.iter().find(|a| a.name == "extern"))
+            .unwrap_or(None)
+        {
+            if external.arguments.len() != 0 {
+                panic!("`@extern` annotation cannot have arguments.")
+            }
+
+            fn_attrs.push(FunctionAttribute::External);
+        }
+
         let fn_effects = annotations
             .map(|annotations| annotations.into_iter().find(|a| a.name == "effect"))
             .unwrap_or(None)
@@ -172,6 +199,7 @@ impl Checker {
                 name,
                 block: expr,
                 return_type,
+                attributes: fn_attrs,
                 parameters: parameters.clone(),
             }),
         }
