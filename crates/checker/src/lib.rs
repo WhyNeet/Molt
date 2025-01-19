@@ -521,7 +521,17 @@ impl Checker {
             for idx in 0..(stmts.len() - 1) {
                 let checked = self.statement(Rc::clone(&stmts[idx]), None);
                 effects.append(&mut checked.effects.clone());
-                checked_stmts.push(Rc::new(checked))
+
+                let stmt_kind = Rc::clone(&checked.stmt);
+                checked_stmts.push(Rc::new(checked));
+
+                match stmt_kind.as_ref() {
+                    StatementKind::Return(expr) => {
+                        self.environment.replace(prev_environment);
+                        return (checked_stmts, effects, Some(expr.ty.clone()));
+                    }
+                    _ => (),
+                }
             }
         }
 
@@ -538,6 +548,7 @@ impl Checker {
 
                     Some(expr.ty.clone())
                 }
+                StatementKind::Return(expr) => Some(expr.ty.clone()),
                 _ => None,
             };
 

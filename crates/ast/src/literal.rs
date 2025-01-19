@@ -41,6 +41,7 @@ pub enum Type {
         return_type: Box<Type>,
     },
     Unit,
+    NoReturn,
 }
 
 impl TryFrom<&str> for Type {
@@ -62,6 +63,7 @@ impl TryFrom<&str> for Type {
             "char" => Ok(Self::Char),
             "str" => Ok(Self::Str),
             "()" => Ok(Self::Unit),
+            "noreturn" => Ok(Self::NoReturn),
             other => Err(format!("`{other}` is not a primitive type.")),
         }
     }
