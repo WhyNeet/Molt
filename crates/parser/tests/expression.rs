@@ -2,10 +2,10 @@ use std::rc::Rc;
 
 use ast::{
     expression::Expression,
-    literal::{Literal, Number, Type},
-    operator::Operator,
+    literal::{Literal, Number},
     statement::Statement,
 };
+use common::{Operator, Type};
 use lexer::scanner::Scanner;
 use parser::Parser;
 

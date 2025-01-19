@@ -1,7 +1,8 @@
 use std::rc::Rc;
 
 use crate::expression::Expression;
-use ast::{annotation::Annotation, literal::Type};
+use ast::annotation::Annotation;
+use common::Type;
 
 use crate::effect::Effect;
 

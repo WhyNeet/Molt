@@ -1,16 +1,15 @@
-use std::{iter::Peekable, mem, rc::Rc};
+use std::{mem, rc::Rc};
 
 use ast::{
     annotation::Annotation,
     expression::Expression,
-    literal::{Literal, Number, Type},
-    operator::Operator,
+    literal::{Literal, Number},
     statement::Statement,
 };
-use lexer::scanner::{
+use common::{
     keywords::Keyword,
-    token::{Base, Literal as LiteralToken, Token, TokenKind},
-    Scanner,
+    token::{Base, Literal as LiteralToken, LiteralKind, Token, TokenKind},
+    Operator, Type,
 };
 
 pub struct Parser {
@@ -537,7 +536,7 @@ impl Parser {
 
             Expression::Identifier(identifier.to_string())
         } else if let Some(literal) = self.matches(TokenKind::Literal(LiteralToken {
-            kind: lexer::scanner::token::LiteralKind::Bool,
+            kind: LiteralKind::Bool,
             suffix: None,
             symbol: "".to_string(),
         })) {
@@ -630,7 +629,7 @@ impl Parser {
 
     fn literal(&mut self, literal: LiteralToken) -> Literal {
         match literal.kind {
-            lexer::scanner::token::LiteralKind::Int { base, empty_int } => {
+            LiteralKind::Int { base, empty_int } => {
                 if empty_int {
                     panic!("empty int.");
                 }
@@ -663,7 +662,7 @@ impl Parser {
 
                 Literal::Number(number)
             }
-            lexer::scanner::token::LiteralKind::Float {
+            LiteralKind::Float {
                 base,
                 empty_exponent,
             } => {
@@ -693,21 +692,21 @@ impl Parser {
 
                 Literal::Number(number)
             }
-            lexer::scanner::token::LiteralKind::Str { terminated } => {
+            LiteralKind::Str { terminated } => {
                 if !terminated {
                     panic!("unterminated string.");
                 }
 
                 Literal::Str(literal.symbol[1..(literal.symbol.len() - 1)].to_string())
             }
-            lexer::scanner::token::LiteralKind::Char { terminated } => {
+            LiteralKind::Char { terminated } => {
                 if !terminated {
                     panic!("unterminated char.");
                 }
 
                 Literal::Char(literal.symbol.as_bytes()[1] as char)
             }
-            lexer::scanner::token::LiteralKind::Bool => Literal::Bool(literal.symbol == "true"),
+            LiteralKind::Bool => Literal::Bool(literal.symbol == "true"),
         }
     }
 

@@ -15,6 +15,7 @@ name = "checker"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "common",
  "tcast",
 ]
 
@@ -25,12 +26,15 @@ version = "0.1.0"
 [[package]]
 name = "lexer"
 version = "0.1.0"
+dependencies = [
+ "common",
+]
 
 [[package]]
 name = "lir"
 version = "0.1.0"
 dependencies = [
- "ast",
+ "common",
 ]
 
 [[package]]
@@ -47,6 +51,7 @@ name = "parser"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "common",
  "lexer",
 ]
 
@@ -55,4 +60,5 @@ name = "tcast"
 version = "0.1.0"
 dependencies = [
  "ast",
+ "common",
 ]

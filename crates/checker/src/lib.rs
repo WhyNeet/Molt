@@ -3,13 +3,8 @@ pub mod environment;
 
 use std::{cell::RefCell, mem, rc::Rc};
 
-use ast::{
-    annotation::Annotation,
-    expression::Expression,
-    literal::{Type, Typed},
-    operator::Operator,
-    statement::Statement,
-};
+use ast::{annotation::Annotation, expression::Expression, statement::Statement};
+use common::{Operator, Type, Typed};
 use context::Context;
 use environment::Environment;
 use tcast::{
@@ -526,9 +521,9 @@ impl Checker {
                 checked_stmts.push(Rc::new(checked));
 
                 match stmt_kind.as_ref() {
-                    StatementKind::Return(expr) => {
+                    StatementKind::Return(_) => {
                         self.environment.replace(prev_environment);
-                        return (checked_stmts, effects, Some(expr.ty.clone()));
+                        return (checked_stmts, effects, Some(Type::NoReturn));
                     }
                     _ => (),
                 }
@@ -548,7 +543,7 @@ impl Checker {
 
                     Some(expr.ty.clone())
                 }
-                StatementKind::Return(expr) => Some(expr.ty.clone()),
+                StatementKind::Return(_) => Some(Type::NoReturn),
                 _ => None,
             };
 

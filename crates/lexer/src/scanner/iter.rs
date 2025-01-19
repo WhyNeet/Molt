@@ -1,7 +1,6 @@
-use super::{
-    token::{Token, TokenKind},
-    Scanner,
-};
+use common::token::{Token, TokenKind};
+
+use super::Scanner;
 
 impl<'a> Iterator for Scanner<'a> {
     type Item = Token;

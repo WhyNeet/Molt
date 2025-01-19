@@ -1,9 +1,7 @@
 use std::rc::Rc;
 
-use ast::{
-    literal::{Literal, Type},
-    operator::Operator,
-};
+use ast::literal::Literal;
+use common::{Operator, Type};
 
 use crate::{effect::Effect, statement::Statement};
 

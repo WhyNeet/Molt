@@ -3,9 +3,9 @@ use std::rc::Rc;
 use ast::{
     expression::Expression,
     literal::{Literal, Number},
-    operator::Operator,
     statement::Statement,
 };
+use common::Operator;
 use lexer::scanner::Scanner;
 use parser::Parser;
 

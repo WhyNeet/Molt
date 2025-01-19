@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use ast::literal::Type;
+use common::Type;
 use tcast::effect::Effect;
 
 #[derive(Debug, Clone)]

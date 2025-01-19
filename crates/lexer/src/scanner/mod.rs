@@ -1,9 +1,9 @@
-pub mod iter;
-pub mod keywords;
-pub mod token;
+use common::{
+    keywords::Keyword,
+    token::{Base, Literal, LiteralKind, Token, TokenKind},
+};
 
-use keywords::Keyword;
-use token::{Base, Literal, LiteralKind, Token, TokenKind};
+pub mod iter;
 
 pub struct Scanner<'a> {
     src: &'a str,

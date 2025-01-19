@@ -1,4 +1,4 @@
-use ast::literal::Type;
+use common::Type;
 
 #[derive(Debug)]
 pub enum Context {

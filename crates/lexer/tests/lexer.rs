@@ -1,8 +1,8 @@
-use lexer::scanner::{
+use common::{
     keywords::Keyword,
     token::{Base, Literal, LiteralKind, Token, TokenKind},
-    Scanner,
 };
+use lexer::scanner::Scanner;
 
 #[test]
 fn numbers_work() {
