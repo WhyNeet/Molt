@@ -1,8 +1,6 @@
-@main @effect(IO) fun main() = {
+@main fun main() = {
   let x: u8 = 7;
   let y = 10;
 
   let sum = x + y as u8;
-
-  println(sum);
 }

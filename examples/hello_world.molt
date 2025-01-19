@@ -4,5 +4,13 @@
   printf(s + "\n");
 }
 
+fun get_message(x: i32) -> str = {
+  if x == 0 {
+    return "hello, world";
+  } else {
+    "Hello, world!"
+  }
+}
 
-@main @effect(io) fun main() = println("Hello, world!")
+
+@main @effect(io) fun main() = println(get_message(0))
