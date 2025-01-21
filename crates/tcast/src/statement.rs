@@ -25,7 +25,7 @@ pub enum StatementKind {
     },
     FunctionDeclaration {
         name: String,
-        block: Option<Expression>,
+        block: Option<Rc<Expression>>,
         return_type: Type,
         parameters: Vec<(String, Type)>,
         attributes: Vec<FunctionAttribute>,
