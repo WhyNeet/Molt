@@ -197,7 +197,7 @@ impl Checker {
             effects: fn_effects,
             stmt: Rc::new(StatementKind::FunctionDeclaration {
                 name,
-                block: expr,
+                block: expr.map(Rc::new),
                 return_type,
                 attributes: fn_attrs,
                 parameters: parameters.clone(),
