@@ -1,0 +1,9 @@
+[package]
+name = "lirgen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tcast = { path = "../tcast" }
+lir = { path = "../lir" }
+common = { path = "../common" }

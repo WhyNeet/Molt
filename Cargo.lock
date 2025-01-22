@@ -38,11 +38,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "lirgen"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "lir",
+ "tcast",
+]
+
+[[package]]
 name = "molt"
 version = "0.1.0"
 dependencies = [
  "checker",
  "lexer",
+ "lirgen",
  "parser",
 ]
 
