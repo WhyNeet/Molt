@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use common::Type;
 
-use crate::expression::Expression;
+use crate::expression::{Expression, StaticExpression};
 
 #[derive(Debug)]
 pub enum Statement {
@@ -13,13 +13,25 @@ pub enum Statement {
     VariableDeclaration {
         name: String,
         expr: Rc<Expression>,
+        allocation: VariableAllocationKind,
         ty: Type,
     },
-    FunctionDeclaration {
+    ExternalFunctionDeclaration {
         name: String,
-        block: Option<Rc<Expression>>,
         return_type: Type,
         parameters: Vec<(String, Type)>,
     },
-    Return(Rc<Expression>),
+    FunctionDeclaration {
+        name: String,
+        block: Vec<Rc<Statement>>,
+        return_type: Type,
+        parameters: Vec<(String, Type)>,
+    },
+    Return(Rc<StaticExpression>),
+}
+
+#[derive(Debug)]
+pub enum VariableAllocationKind {
+    SSA,
+    Stack,
 }

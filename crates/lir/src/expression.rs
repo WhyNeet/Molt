@@ -7,13 +7,13 @@ use crate::operator::{BinaryOperator, UnaryOperator};
 #[derive(Debug)]
 pub enum Expression {
     Binary {
-        left: PrimaryExpression,
+        left: StaticExpression,
         operator: BinaryOperator,
-        right: PrimaryExpression,
+        right: StaticExpression,
     },
     Unary {
         operator: UnaryOperator,
-        expr: PrimaryExpression,
+        expr: StaticExpression,
     },
     MemberAccess {
         expr: Rc<Expression>,
@@ -27,10 +27,11 @@ pub enum Expression {
         expr: Rc<Expression>,
         arguments: Vec<Rc<Expression>>,
     },
+    Static(Rc<StaticExpression>),
 }
 
 #[derive(Debug)]
-pub enum PrimaryExpression {
+pub enum StaticExpression {
     Literal(Rc<Literal>),
     Identifier(String),
 }
