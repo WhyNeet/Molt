@@ -11,14 +11,16 @@ pub enum LirVariableKind {
 
 #[derive(Debug)]
 pub struct LirVariable {
+    name: String,
     kind: LirVariableKind,
     ty: Type,
     expr: RefCell<Option<Rc<Expression>>>,
 }
 
 impl LirVariable {
-    pub fn new(kind: LirVariableKind, ty: Type) -> Self {
+    pub fn new(name: String, kind: LirVariableKind, ty: Type) -> Self {
         Self {
+            name,
             expr: RefCell::default(),
             kind,
             ty,
@@ -35,7 +37,7 @@ impl LirVariable {
         *var_expr = Some(expr);
     }
 
-    pub fn take(self) -> (Option<Rc<Expression>>, Type) {
-        (self.expr.borrow().clone(), self.ty)
+    pub fn take(self) -> (String, Option<Rc<Expression>>, Type) {
+        (self.name, self.expr.borrow().clone(), self.ty)
     }
 }

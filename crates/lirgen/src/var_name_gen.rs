@@ -5,12 +5,12 @@ impl VariableNameGenerator {
     pub fn new() -> Self {
         Self(0)
     }
-    pub fn generate(&mut self) -> String {
+    pub fn generate(&mut self) -> u64 {
         let id = self.0;
 
         self.0 += 1;
 
-        id.to_string()
+        id
     }
 
     pub fn reset(&mut self) {

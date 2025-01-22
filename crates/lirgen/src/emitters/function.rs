@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use common::Type;
+use common::{Literal, Type};
 use lir::{
     expression::{Expression, StaticExpression},
     statement::{Statement, VariableAllocationKind},
@@ -16,15 +16,15 @@ use crate::{
     variable::{LirVariable, LirVariableKind},
 };
 
+use super::expression::LirExpressionEmitter;
+
 pub struct LirFunctionEmitter {
-    ssa_name_gen: RefCell<VariableNameGenerator>,
     stmts: RefCell<Vec<Rc<Statement>>>,
 }
 
 impl LirFunctionEmitter {
     pub fn new() -> Self {
         Self {
-            ssa_name_gen: RefCell::default(),
             stmts: RefCell::default(),
         }
     }
@@ -48,33 +48,22 @@ impl LirFunctionEmitter {
 
         let block = block.unwrap();
 
-        let expr_result = if block.ty != Type::Unit {
-            Some(LirVariable::new(
-                LirVariableKind::Temporary,
-                block.ty.clone(),
-            ))
+        let produces_value = block.ty != Type::Unit;
+
+        let (mut expr_stmts, ssa_name) = if produces_value {
+            let (stmts, name) = LirExpressionEmitter::new().emit_into_variable(&block, None);
+            (stmts, Some(name))
         } else {
-            None
+            (LirExpressionEmitter::new().emit(&block), None)
         };
 
-        self.lower_expr(&block, expr_result.as_ref());
+        self.stmts.borrow_mut().append(&mut expr_stmts);
 
-        let temp_name = self.ssa_name_gen.borrow_mut().generate();
-
-        if let Some(var) = expr_result {
-            let (expr, ty) = var.take();
-
-            let temp = Statement::VariableDeclaration {
-                name: temp_name.clone(),
-                expr: expr.expect("expected expression to be stored inside a variable."),
-                allocation: VariableAllocationKind::SSA,
-                ty,
-            };
-
-            self.stmts.borrow_mut().push(Rc::new(temp));
-        }
-
-        let ret = Statement::Return(Rc::new(StaticExpression::Identifier(temp_name)));
+        let ret = if let Some(ssa_name) = ssa_name {
+            Statement::Return(Rc::new(StaticExpression::Identifier(ssa_name)))
+        } else {
+            Statement::Return(Rc::new(StaticExpression::Literal(Rc::new(Literal::Unit))))
+        };
 
         self.stmts.borrow_mut().push(Rc::new(ret));
 
@@ -86,38 +75,23 @@ impl LirFunctionEmitter {
         }
     }
 
-    fn lower_stmt(&self, stmt: Rc<CheckedStatement>) {
-        match stmt.stmt.as_ref() {
-            StatementKind::Expression { expr, end_semi } => {
-                if *end_semi {
-                    // this is an implicit return from a function or a block
-                    self.lower_expr(expr, None);
-                } else {
-                    if expr.effects.is_empty() {
-                        // if there are no effects
-                        // do not execute an expression statement (skip it)
-                        return;
-                    }
+    // fn lower_stmt(&self, stmt: Rc<CheckedStatement>) {
+    //     match stmt.stmt.as_ref() {
+    //         StatementKind::Expression { expr, end_semi } => {
+    //             if *end_semi {
+    //                 // this is an implicit return from a function or a block
+    //                 self.lower_expr(expr, None);
+    //             } else {
+    //                 if expr.effects.is_empty() {
+    //                     // if there are no effects
+    //                     // do not execute an expression statement (skip it)
+    //                     return;
+    //                 }
 
-                    self.lower_expr(expr, None);
-                }
-            }
-            _ => todo!(),
-        }
-    }
-
-    fn lower_expr(&self, expr: &CheckedExpression, store_in: Option<&LirVariable>) {
-        match expr.expr.as_ref() {
-            ExpressionKind::Literal(literal) => {
-                let expr = Rc::new(Expression::Static(Rc::new(StaticExpression::Literal(
-                    Rc::clone(literal),
-                ))));
-
-                if let Some(variable) = store_in {
-                    variable.put(expr);
-                }
-            }
-            _ => todo!(),
-        }
-    }
+    //                 self.lower_expr(expr, None);
+    //             }
+    //         }
+    //         _ => todo!(),
+    //     }
+    // }
 }
