@@ -316,7 +316,7 @@ impl Checker {
                     panic!("[binary expression] lhs and rhs dont have same types")
                 }
 
-                if operator.accepts(&left_checked.ty) {
+                if !operator.accepts(&left_checked.ty) {
                     panic!(
                         "[binary expression] operand type mismatch: `{:?}`.",
                         left_checked.ty,
