@@ -1,4 +1,7 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::RefCell,
+    rc::{Rc, Weak},
+};
 
 use common::{Literal, Type};
 use lir::{
@@ -11,21 +14,44 @@ use tcast::{
     statement::{Statement as CheckedStatement, StatementKind},
 };
 
-use crate::{
-    var_name_gen::VariableNameGenerator,
-    variable::{LirVariable, LirVariableKind},
-};
+use super::{expression::LirExpressionEmitter, statement::LirStatementEmitter};
 
-use super::expression::LirExpressionEmitter;
+#[derive(Debug, Default)]
+pub struct LirFunctionEmitterScope {
+    pub(crate) expr_emitter: RefCell<LirExpressionEmitter>,
+    pub(crate) stmt_emitter: RefCell<LirStatementEmitter>,
+}
 
+#[derive(Debug, Default)]
 pub struct LirFunctionEmitter {
+    scope: Rc<LirFunctionEmitterScope>,
     stmts: RefCell<Vec<Rc<Statement>>>,
 }
 
 impl LirFunctionEmitter {
     pub fn new() -> Self {
+        let expr_emitter = LirExpressionEmitter::new(Weak::new());
+        let stmt_emitter = LirStatementEmitter::new(Weak::new());
+
+        let scope = LirFunctionEmitterScope {
+            expr_emitter: RefCell::new(expr_emitter),
+            stmt_emitter: RefCell::new(stmt_emitter),
+        };
+
+        let scope = Rc::new(scope);
+
+        scope
+            .expr_emitter
+            .borrow_mut()
+            .update_scope(Rc::downgrade(&scope));
+        scope
+            .stmt_emitter
+            .borrow_mut()
+            .update_scope(Rc::downgrade(&scope));
+
         Self {
-            stmts: RefCell::default(),
+            scope,
+            ..Default::default()
         }
     }
 }
@@ -51,10 +77,14 @@ impl LirFunctionEmitter {
         let produces_value = block.ty != Type::Unit;
 
         let (mut expr_stmts, ssa_name) = if produces_value {
-            let (stmts, name) = LirExpressionEmitter::new().emit_into_variable(&block, None);
+            let (stmts, name) = self
+                .scope
+                .expr_emitter
+                .borrow_mut()
+                .emit_into_variable(&block, None);
             (stmts, Some(name))
         } else {
-            (LirExpressionEmitter::new().emit(&block), None)
+            (self.scope.expr_emitter.borrow_mut().emit(&block), None)
         };
 
         self.stmts.borrow_mut().append(&mut expr_stmts);
@@ -74,24 +104,4 @@ impl LirFunctionEmitter {
             parameters,
         }
     }
-
-    // fn lower_stmt(&self, stmt: Rc<CheckedStatement>) {
-    //     match stmt.stmt.as_ref() {
-    //         StatementKind::Expression { expr, end_semi } => {
-    //             if *end_semi {
-    //                 // this is an implicit return from a function or a block
-    //                 self.lower_expr(expr, None);
-    //             } else {
-    //                 if expr.effects.is_empty() {
-    //                     // if there are no effects
-    //                     // do not execute an expression statement (skip it)
-    //                     return;
-    //                 }
-
-    //                 self.lower_expr(expr, None);
-    //             }
-    //         }
-    //         _ => todo!(),
-    //     }
-    // }
 }
