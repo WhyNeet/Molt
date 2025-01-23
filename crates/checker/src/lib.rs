@@ -579,7 +579,7 @@ impl Checker {
                         }
                         ty = Some(Type::NoReturn);
                     }
-                    StatementKind::Expression { end_semi, .. } if *end_semi => {
+                    StatementKind::Expression { end_semi, .. } if !*end_semi => {
                         panic!("[block] implicit return can only appear at the end of the block.")
                     }
                     _ => (),
