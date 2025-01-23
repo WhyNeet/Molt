@@ -1,4 +1,5 @@
 use std::{
+    borrow::BorrowMut,
     cell::RefCell,
     rc::{Rc, Weak},
 };
@@ -21,34 +22,32 @@ use super::function::LirFunctionEmitterScope;
 
 #[derive(Debug, Default)]
 pub struct LirExpressionEmitter {
-    ssa_name_gen: VariableNameGenerator,
-    stmts: Vec<Rc<Statement>>,
-    scope: Weak<LirFunctionEmitterScope>,
+    ssa_name_gen: RefCell<VariableNameGenerator>,
+    stmts: RefCell<Vec<Rc<Statement>>>,
+    scope: RefCell<Weak<LirFunctionEmitterScope>>,
 }
 
 impl LirExpressionEmitter {
     pub fn new(scope: Weak<LirFunctionEmitterScope>) -> Self {
         Self {
-            scope,
+            scope: RefCell::new(scope),
             ..Default::default()
         }
     }
 
-    pub(crate) fn update_scope(&mut self, scope: Weak<LirFunctionEmitterScope>) {
-        self.scope = scope;
+    pub(crate) fn update_scope(&self, scope: Weak<LirFunctionEmitterScope>) {
+        self.scope.replace(scope);
     }
 }
 
 impl LirExpressionEmitter {
     /// If the variable is `None`, returns the identifier for a new temporary variable
     pub fn emit_into_variable(
-        &mut self,
+        &self,
         expr: &CheckedExpression,
         variable: Option<LirVariable>,
     ) -> (Vec<Rc<Statement>>, String) {
-        let name = self.ssa_name_gen.generate();
-
-        println!("store expr in: {name}");
+        let name = self.ssa_name_gen.borrow_mut().generate();
 
         let var = if let Some(var) = variable {
             var
@@ -70,51 +69,40 @@ impl LirExpressionEmitter {
             ty,
         };
 
-        println!("ssa with name: {var_name}");
+        self.stmts.borrow_mut().push(Rc::new(ssa));
 
-        self.stmts.push(Rc::new(ssa));
-
-        (self.stmts.clone(), var_name)
+        (self.stmts.take(), var_name)
     }
 
-    pub fn emit(&mut self, expr: &CheckedExpression) -> Vec<Rc<Statement>> {
+    pub fn emit(&self, expr: &CheckedExpression) -> Vec<Rc<Statement>> {
         self.lower_expr(expr, None);
 
-        self.stmts.clone()
+        self.stmts.take()
     }
 
-    fn lower_expr(&mut self, expr: &CheckedExpression, store_in: Option<&LirVariable>) {
+    fn lower_expr(&self, expr: &CheckedExpression, store_in: Option<&LirVariable>) {
         match expr.expr.as_ref() {
             ExpressionKind::Literal(literal) => {
-                let expr = Rc::new(Expression::Static(Rc::new(StaticExpression::Literal(
-                    Rc::clone(literal),
-                ))));
+                let expr = StaticExpression::Literal(Rc::clone(literal));
 
                 if let Some(variable) = store_in {
-                    variable.put(expr);
+                    variable.put(Rc::new(expr));
                 }
             }
             ExpressionKind::Block(stmts) => {
+                let stmt_emitter = &self.scope.borrow().upgrade().unwrap().stmt_emitter;
+
                 let mut block_stmts = if stmts.len() > 1 {
                     stmts[..(stmts.len() - 1)]
                         .iter()
-                        .map(|stmt| {
-                            self.scope
-                                .upgrade()
-                                .unwrap()
-                                .stmt_emitter
-                                .borrow_mut()
-                                .emit(stmt)
-                        })
+                        .map(|stmt| stmt_emitter.emit(stmt))
                         .flatten()
                         .collect::<Vec<Rc<Statement>>>()
                 } else {
                     vec![]
                 };
 
-                println!("block: {block_stmts:?}");
-
-                self.stmts.append(&mut block_stmts);
+                self.stmts.borrow_mut().append(&mut block_stmts);
 
                 if let Some(last) = stmts.last() {
                     match last.stmt.as_ref() {
@@ -122,15 +110,9 @@ impl LirExpressionEmitter {
                             self.lower_expr(expr, store_in);
                         }
                         _ => {
-                            let mut stmts = self
-                                .scope
-                                .upgrade()
-                                .unwrap()
-                                .stmt_emitter
-                                .borrow_mut()
-                                .emit(last);
+                            let mut stmts = stmt_emitter.emit(last);
 
-                            self.stmts.append(&mut stmts)
+                            self.stmts.borrow_mut().append(&mut stmts)
                         }
                     }
                 };

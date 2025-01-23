@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use common::Type;
-use lir::expression::Expression;
+use lir::expression::{Expression, StaticExpression};
 
 #[derive(Debug)]
 pub enum LirVariableKind {
@@ -14,7 +14,7 @@ pub struct LirVariable {
     name: String,
     kind: LirVariableKind,
     ty: Type,
-    expr: RefCell<Option<Rc<Expression>>>,
+    expr: RefCell<Option<Rc<StaticExpression>>>,
 }
 
 impl LirVariable {
@@ -27,7 +27,7 @@ impl LirVariable {
         }
     }
 
-    pub fn put(&self, expr: Rc<Expression>) {
+    pub fn put(&self, expr: Rc<StaticExpression>) {
         let mut var_expr = self.expr.borrow_mut();
 
         if var_expr.is_some() {
@@ -37,7 +37,7 @@ impl LirVariable {
         *var_expr = Some(expr);
     }
 
-    pub fn take(self) -> (String, Option<Rc<Expression>>, Type) {
+    pub fn take(self) -> (String, Option<Rc<StaticExpression>>, Type) {
         (self.name, self.expr.borrow().clone(), self.ty)
     }
 }

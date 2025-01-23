@@ -12,7 +12,7 @@ pub enum Statement {
     },
     VariableDeclaration {
         name: String,
-        expr: Rc<Expression>,
+        expr: Rc<StaticExpression>,
         allocation: VariableAllocationKind,
         ty: Type,
     },

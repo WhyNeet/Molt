@@ -1,37 +1,44 @@
-use std::rc::{Rc, Weak};
+use std::{
+    borrow::{Borrow, BorrowMut},
+    cell::RefCell,
+    rc::{Rc, Weak},
+};
 
-use lir::{expression::StaticExpression, statement::Statement};
+use lir::{
+    expression::{Expression, StaticExpression},
+    statement::{Statement, VariableAllocationKind},
+};
 use tcast::statement::{Statement as CheckedStatement, StatementKind};
 
 use super::function::LirFunctionEmitterScope;
 
 #[derive(Debug, Default)]
 pub struct LirStatementEmitter {
-    stmts: Vec<Rc<Statement>>,
-    scope: Weak<LirFunctionEmitterScope>,
+    stmts: RefCell<Vec<Rc<Statement>>>,
+    scope: RefCell<Weak<LirFunctionEmitterScope>>,
 }
 
 impl LirStatementEmitter {
     pub fn new(scope: Weak<LirFunctionEmitterScope>) -> Self {
         Self {
-            scope,
+            scope: RefCell::new(scope),
             ..Default::default()
         }
     }
 
-    pub(crate) fn update_scope(&mut self, scope: Weak<LirFunctionEmitterScope>) {
-        self.scope = scope;
+    pub(crate) fn update_scope(&self, scope: Weak<LirFunctionEmitterScope>) {
+        self.scope.replace(scope);
     }
 }
 
 impl LirStatementEmitter {
-    pub fn emit(&mut self, stmt: &CheckedStatement) -> Vec<Rc<Statement>> {
+    pub fn emit(&self, stmt: &CheckedStatement) -> Vec<Rc<Statement>> {
         self.lower(stmt);
 
-        self.stmts.clone()
+        self.stmts.take()
     }
 
-    fn lower(&mut self, stmt: &CheckedStatement) {
+    fn lower(&self, stmt: &CheckedStatement) {
         match stmt.stmt.as_ref() {
             StatementKind::Expression { expr, .. } => {
                 // block implicit returns will be processed differently
@@ -45,31 +52,33 @@ impl LirStatementEmitter {
 
                 let mut stmts = self
                     .scope
+                    .borrow()
                     .upgrade()
                     .unwrap()
                     .expr_emitter
-                    .borrow_mut()
                     .emit(expr);
 
-                self.stmts.append(&mut stmts);
+                self.stmts.borrow_mut().append(&mut stmts);
+            }
+            StatementKind::VariableDeclaration { name, expr, ty } => {
+                let (mut lir_stmts, ssa_name) = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .expr_emitter
+                    .emit_into_variable(expr, None);
 
-                // if *end_semi {
-                // } else {
-                //     // this is an implicit return from a function or a block
-                //     let (mut stmts, tmp_name) = self
-                //         .scope
-                //         .upgrade()
-                //         .unwrap()
-                //         .expr_emitter
-                //         .borrow_mut()
-                //         .emit_into_variable(expr, None);
+                self.stmts.borrow_mut().append(&mut lir_stmts);
 
-                //     let ret = Statement::Return(Rc::new(StaticExpression::Identifier(tmp_name)));
+                let stmt = Statement::VariableDeclaration {
+                    name: name.to_string(),
+                    expr: Rc::new(StaticExpression::Identifier(ssa_name)),
+                    allocation: VariableAllocationKind::Stack,
+                    ty: ty.clone(),
+                };
 
-                //     self.stmts.push(Rc::new(ret));
-
-                //     self.stmts.append(&mut stmts);
-                // }
+                self.stmts.borrow_mut().push(Rc::new(stmt));
             }
             _ => todo!(),
         }

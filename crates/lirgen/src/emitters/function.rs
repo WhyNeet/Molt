@@ -18,8 +18,8 @@ use super::{expression::LirExpressionEmitter, statement::LirStatementEmitter};
 
 #[derive(Debug, Default)]
 pub struct LirFunctionEmitterScope {
-    pub(crate) expr_emitter: RefCell<LirExpressionEmitter>,
-    pub(crate) stmt_emitter: RefCell<LirStatementEmitter>,
+    pub(crate) expr_emitter: LirExpressionEmitter,
+    pub(crate) stmt_emitter: LirStatementEmitter,
 }
 
 #[derive(Debug, Default)]
@@ -34,20 +34,14 @@ impl LirFunctionEmitter {
         let stmt_emitter = LirStatementEmitter::new(Weak::new());
 
         let scope = LirFunctionEmitterScope {
-            expr_emitter: RefCell::new(expr_emitter),
-            stmt_emitter: RefCell::new(stmt_emitter),
+            expr_emitter,
+            stmt_emitter,
         };
 
         let scope = Rc::new(scope);
 
-        scope
-            .expr_emitter
-            .borrow_mut()
-            .update_scope(Rc::downgrade(&scope));
-        scope
-            .stmt_emitter
-            .borrow_mut()
-            .update_scope(Rc::downgrade(&scope));
+        scope.expr_emitter.update_scope(Rc::downgrade(&scope));
+        scope.stmt_emitter.update_scope(Rc::downgrade(&scope));
 
         Self {
             scope,
@@ -77,14 +71,10 @@ impl LirFunctionEmitter {
         let produces_value = block.ty != Type::Unit;
 
         let (mut expr_stmts, ssa_name) = if produces_value {
-            let (stmts, name) = self
-                .scope
-                .expr_emitter
-                .borrow_mut()
-                .emit_into_variable(&block, None);
+            let (stmts, name) = self.scope.expr_emitter.emit_into_variable(&block, None);
             (stmts, Some(name))
         } else {
-            (self.scope.expr_emitter.borrow_mut().emit(&block), None)
+            (self.scope.expr_emitter.emit(&block), None)
         };
 
         self.stmts.borrow_mut().append(&mut expr_stmts);
