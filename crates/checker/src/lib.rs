@@ -279,9 +279,16 @@ impl Checker {
                     }
                 }
 
+                if !operator.accepts(&checked.ty) {
+                    panic!(
+                        "[unary expression] operand type mismatch: `{:?}`.",
+                        checked.ty,
+                    )
+                }
+
                 CheckedExpression {
                     effects: checked.effects.clone(),
-                    ty: checked.ty.clone(),
+                    ty: operator.produces(checked.ty.clone()),
                     expr: Rc::new(ExpressionKind::Unary {
                         operator: *operator,
                         expr: Rc::new(checked),
@@ -307,6 +314,13 @@ impl Checker {
                 }
                 if right_checked.ty != left_checked.ty {
                     panic!("[binary expression] lhs and rhs dont have same types")
+                }
+
+                if operator.accepts(&left_checked.ty) {
+                    panic!(
+                        "[binary expression] operand type mismatch: `{:?}`.",
+                        left_checked.ty,
+                    )
                 }
 
                 CheckedExpression {
