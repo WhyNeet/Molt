@@ -27,8 +27,22 @@ pub enum Operator {
 impl Operator {
     pub fn produces(&self, operand_type: Type) -> Type {
         match self {
-            Self::Eq | Self::Ge | Self::Gt | Self::Le | Self::Lt | Self::Ne => Type::Bool,
+            Self::Eq | Self::Ge | Self::Gt | Self::Le | Self::Lt | Self::Ne | Self::Not => {
+                Type::Bool
+            }
             _ => operand_type,
+        }
+    }
+
+    pub fn accepts(&self, operand_type: &Type) -> bool {
+        match self {
+            Self::Eq | Self::Ge | Self::Gt | Self::Le | Self::Lt | Self::Ne => true,
+            Self::Neg => operand_type.is_numeric(),
+            Operator::Add => operand_type.is_numeric() || operand_type == &Type::Str,
+            Operator::Sub => operand_type.is_numeric(),
+            Operator::Mul | Operator::Div => operand_type.is_numeric(),
+            Operator::And | Operator::Or | Operator::Not => operand_type == &Type::Bool,
+            Operator::BitXor | Operator::Shl | Operator::Shr => operand_type.is_numeric(),
         }
     }
 }
