@@ -7,3 +7,4 @@ edition = "2021"
 lexer = { path = "../lexer" }
 parser = { path = "../parser" }
 checker = { path = "../checker" }
+lirgen = { path = "../lirgen" }

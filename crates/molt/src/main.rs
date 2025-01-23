@@ -2,6 +2,7 @@ use std::fs;
 
 use checker::Checker;
 use lexer::scanner::Scanner;
+use lirgen::emitters::module::LirModuleEmitter;
 use parser::Parser;
 
 fn main() {
@@ -12,6 +13,8 @@ fn main() {
     let tree = Parser::new(tokens).parse();
 
     let tree = Checker::new(tree).check();
+
+    let tree = LirModuleEmitter::new().emit(tree);
 
     println!("parsed tree:\n{tree:?}");
 }
