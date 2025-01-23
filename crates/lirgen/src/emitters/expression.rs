@@ -5,7 +5,7 @@ use std::{
 
 use lir::{
     expression::{Expression, StaticExpression},
-    operator::BinaryOperator,
+    operator::{BinaryOperator, UnaryOperator},
     statement::Statement,
 };
 use tcast::{
@@ -150,6 +150,31 @@ impl LirExpressionEmitter {
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Static(Rc::new(expr))));
+                }
+            }
+            ExpressionKind::Unary { operator, expr } => {
+                let (mut lir_stmts, ssa_name) = self.emit_into_variable(expr, None);
+
+                self.stmts.borrow_mut().append(&mut lir_stmts);
+
+                let lir_expr = Expression::Unary {
+                    operator: UnaryOperator::from(operator),
+                    expr: StaticExpression::Identifier(ssa_name),
+                };
+
+                if let Some(variable) = store_in {
+                    variable.store(Rc::new(lir_expr));
+                }
+            }
+            ExpressionKind::Grouping(expr) => {
+                let (mut lir_stmts, ssa_name) = self.emit_into_variable(expr, None);
+
+                self.stmts.borrow_mut().append(&mut lir_stmts);
+
+                if let Some(variable) = store_in {
+                    variable.store(Rc::new(Expression::Static(Rc::new(
+                        StaticExpression::Identifier(ssa_name),
+                    ))));
                 }
             }
             other => todo!("`{other:?}` is not implemented"),
