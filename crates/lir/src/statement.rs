@@ -12,8 +12,12 @@ pub enum Statement {
     },
     VariableDeclaration {
         name: String,
-        expr: Rc<StaticExpression>,
-        allocation: VariableAllocationKind,
+        expr: Rc<Expression>,
+        ty: Type,
+    },
+    StaticVariableDeclaration {
+        id: u64,
+        expr: Rc<Expression>,
         ty: Type,
     },
     ExternalFunctionDeclaration {
@@ -28,10 +32,4 @@ pub enum Statement {
         parameters: Vec<(String, Type)>,
     },
     Return(Rc<StaticExpression>),
-}
-
-#[derive(Debug)]
-pub enum VariableAllocationKind {
-    SSA,
-    Stack,
 }

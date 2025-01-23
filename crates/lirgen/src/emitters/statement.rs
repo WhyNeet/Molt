@@ -1,12 +1,11 @@
 use std::{
-    borrow::{Borrow, BorrowMut},
     cell::RefCell,
     rc::{Rc, Weak},
 };
 
 use lir::{
     expression::{Expression, StaticExpression},
-    statement::{Statement, VariableAllocationKind},
+    statement::Statement,
 };
 use tcast::statement::{Statement as CheckedStatement, StatementKind};
 
@@ -73,8 +72,9 @@ impl LirStatementEmitter {
 
                 let stmt = Statement::VariableDeclaration {
                     name: name.to_string(),
-                    expr: Rc::new(StaticExpression::Identifier(ssa_name)),
-                    allocation: VariableAllocationKind::Stack,
+                    expr: Rc::new(Expression::Static(Rc::new(StaticExpression::Identifier(
+                        ssa_name,
+                    )))),
                     ty: ty.clone(),
                 };
 

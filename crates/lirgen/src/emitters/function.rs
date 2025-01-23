@@ -4,15 +4,8 @@ use std::{
 };
 
 use common::{Literal, Type};
-use lir::{
-    expression::{Expression, StaticExpression},
-    statement::{Statement, VariableAllocationKind},
-};
-use tcast::{
-    expression::{Expression as CheckedExpression, ExpressionKind},
-    fn_attribute::FunctionAttribute,
-    statement::{Statement as CheckedStatement, StatementKind},
-};
+use lir::{expression::StaticExpression, statement::Statement};
+use tcast::expression::Expression as CheckedExpression;
 
 use super::{expression::LirExpressionEmitter, statement::LirStatementEmitter};
 
