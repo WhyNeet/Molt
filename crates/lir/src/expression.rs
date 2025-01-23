@@ -20,7 +20,7 @@ pub enum Expression {
         ident: String,
     },
     Cast {
-        expr: Rc<Expression>,
+        expr: Rc<StaticExpression>,
         ty: Type,
     },
     Call {

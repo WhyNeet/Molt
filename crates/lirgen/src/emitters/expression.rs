@@ -110,7 +110,6 @@ impl LirExpressionEmitter {
                     }
                 };
             }
-            ExpressionKind::Assignment { .. } => todo!(),
             ExpressionKind::Binary {
                 left,
                 operator,
@@ -175,6 +174,50 @@ impl LirExpressionEmitter {
                     variable.store(Rc::new(Expression::Static(Rc::new(
                         StaticExpression::Identifier(ssa_name),
                     ))));
+                }
+            }
+            ExpressionKind::Call {
+                expr: sub_expr,
+                arguments,
+            } => {
+                let fn_ident = match sub_expr.expr.as_ref() {
+                    ExpressionKind::Identifier(ident) => ident,
+                    _ => todo!("callable expressions are not yet implemented"),
+                };
+
+                let mut stmts = self.stmts.borrow_mut();
+
+                let mut fn_args = vec![];
+
+                for argument in arguments {
+                    let (mut arg_stmts, ssa_name) = self.emit_into_variable(argument, None);
+                    stmts.append(&mut arg_stmts);
+                    fn_args.push(Rc::new(Expression::Static(Rc::new(
+                        StaticExpression::Identifier(ssa_name),
+                    ))));
+                }
+
+                if let Some(variable) = store_in {
+                    variable.store(Rc::new(Expression::Call {
+                        expr: Rc::new(Expression::Static(Rc::new(StaticExpression::Identifier(
+                            fn_ident.to_string(),
+                        )))),
+                        arguments: fn_args,
+                    }));
+                }
+            }
+            ExpressionKind::Cast { expr, ty } => {
+                let (mut lir_stmts, ssa_name) = self.emit_into_variable(expr, None);
+
+                self.stmts.borrow_mut().append(&mut lir_stmts);
+
+                let lir_expr = Expression::Cast {
+                    ty: ty.clone(),
+                    expr: Rc::new(StaticExpression::Identifier(ssa_name)),
+                };
+
+                if let Some(variable) = store_in {
+                    variable.store(Rc::new(lir_expr));
                 }
             }
             other => todo!("`{other:?}` is not implemented"),
