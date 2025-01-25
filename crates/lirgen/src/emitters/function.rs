@@ -4,8 +4,10 @@ use std::{
 };
 
 use common::{Literal, Type};
-use lir::{expression::StaticExpression, statement::Statement};
+use lir::{block::BasicBlock, expression::StaticExpression, statement::Statement};
 use tcast::expression::Expression as CheckedExpression;
+
+use crate::builder::FunctionBuilder;
 
 use super::{expression::LirExpressionEmitter, statement::LirStatementEmitter};
 
@@ -18,13 +20,16 @@ pub struct LirFunctionEmitterScope {
 #[derive(Debug, Default)]
 pub struct LirFunctionEmitter {
     scope: Rc<LirFunctionEmitterScope>,
-    stmts: RefCell<Vec<Rc<Statement>>>,
+    builder: Rc<FunctionBuilder>,
 }
 
 impl LirFunctionEmitter {
     pub fn new() -> Self {
-        let expr_emitter = LirExpressionEmitter::new(Weak::new());
-        let stmt_emitter = LirStatementEmitter::new(Weak::new());
+        let builder = FunctionBuilder::new();
+        let builder = Rc::new(builder);
+
+        let expr_emitter = LirExpressionEmitter::new(Weak::new(), Rc::clone(&builder));
+        let stmt_emitter = LirStatementEmitter::new(Weak::new(), Rc::clone(&builder));
 
         let scope = LirFunctionEmitterScope {
             expr_emitter,
@@ -36,10 +41,7 @@ impl LirFunctionEmitter {
         scope.expr_emitter.update_scope(Rc::downgrade(&scope));
         scope.stmt_emitter.update_scope(Rc::downgrade(&scope));
 
-        Self {
-            scope,
-            ..Default::default()
-        }
+        Self { scope, builder }
     }
 }
 
@@ -60,17 +62,17 @@ impl LirFunctionEmitter {
         }
 
         let block = block.unwrap();
+        self.builder.append_block();
 
         let produces_value = block.ty != Type::Unit;
 
-        let (mut expr_stmts, ssa_name) = if produces_value {
-            let (stmts, name) = self.scope.expr_emitter.emit_into_variable(&block, None);
-            (stmts, Some(name))
+        let ssa_name = if produces_value {
+            let name = self.scope.expr_emitter.emit_into_variable(&block, None);
+            Some(name)
         } else {
-            (self.scope.expr_emitter.emit(&block), None)
+            self.scope.expr_emitter.emit(&block);
+            None
         };
-
-        self.stmts.borrow_mut().append(&mut expr_stmts);
 
         let ret = if let Some(ssa_name) = ssa_name {
             Statement::Return(Rc::new(StaticExpression::Identifier(ssa_name)))
@@ -78,11 +80,11 @@ impl LirFunctionEmitter {
             Statement::Return(Rc::new(StaticExpression::Literal(Rc::new(Literal::Unit))))
         };
 
-        self.stmts.borrow_mut().push(Rc::new(ret));
+        self.builder.push(Rc::new(ret));
 
         Statement::FunctionDeclaration {
             name,
-            block: self.stmts.take(),
+            blocks: self.builder.into_blocks(),
             return_type,
             parameters,
         }

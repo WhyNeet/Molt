@@ -4,6 +4,7 @@ use emitters::module::LirModuleEmitter;
 use lir::module::LirModule;
 use tcast::statement::Statement as CheckedStatement;
 
+pub mod builder;
 pub mod emitters;
 pub mod var_name_gen;
 pub mod variable;

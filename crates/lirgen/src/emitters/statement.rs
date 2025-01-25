@@ -9,18 +9,21 @@ use lir::{
 };
 use tcast::statement::{Statement as CheckedStatement, StatementKind};
 
+use crate::builder::FunctionBuilder;
+
 use super::function::LirFunctionEmitterScope;
 
 #[derive(Debug, Default)]
 pub struct LirStatementEmitter {
-    stmts: RefCell<Vec<Rc<Statement>>>,
+    builder: Rc<FunctionBuilder>,
     scope: RefCell<Weak<LirFunctionEmitterScope>>,
 }
 
 impl LirStatementEmitter {
-    pub fn new(scope: Weak<LirFunctionEmitterScope>) -> Self {
+    pub fn new(scope: Weak<LirFunctionEmitterScope>, builder: Rc<FunctionBuilder>) -> Self {
         Self {
             scope: RefCell::new(scope),
+            builder,
             ..Default::default()
         }
     }
@@ -31,10 +34,8 @@ impl LirStatementEmitter {
 }
 
 impl LirStatementEmitter {
-    pub fn emit(&self, stmt: &CheckedStatement) -> Vec<Rc<Statement>> {
+    pub fn emit(&self, stmt: &CheckedStatement) {
         self.lower(stmt);
-
-        self.stmts.take()
     }
 
     fn lower(&self, stmt: &CheckedStatement) {
@@ -49,26 +50,21 @@ impl LirStatementEmitter {
                     return;
                 }
 
-                let mut stmts = self
-                    .scope
+                self.scope
                     .borrow()
                     .upgrade()
                     .unwrap()
                     .expr_emitter
                     .emit(expr);
-
-                self.stmts.borrow_mut().append(&mut stmts);
             }
             StatementKind::VariableDeclaration { name, expr, ty } => {
-                let (mut lir_stmts, ssa_name) = self
+                let ssa_name = self
                     .scope
                     .borrow()
                     .upgrade()
                     .unwrap()
                     .expr_emitter
                     .emit_into_variable(expr, None);
-
-                self.stmts.borrow_mut().append(&mut lir_stmts);
 
                 let stmt = Statement::VariableDeclaration {
                     name: name.to_string(),
@@ -78,7 +74,7 @@ impl LirStatementEmitter {
                     ty: ty.clone(),
                 };
 
-                self.stmts.borrow_mut().push(Rc::new(stmt));
+                self.builder.push(Rc::new(stmt));
             }
             _ => todo!(),
         }

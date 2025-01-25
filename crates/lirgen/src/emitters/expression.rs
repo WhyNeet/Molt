@@ -13,21 +13,22 @@ use tcast::{
     statement::StatementKind,
 };
 
-use crate::{var_name_gen::VariableNameGenerator, variable::LirVariable};
+use crate::{builder::FunctionBuilder, var_name_gen::VariableNameGenerator, variable::LirVariable};
 
 use super::function::LirFunctionEmitterScope;
 
 #[derive(Debug, Default)]
 pub struct LirExpressionEmitter {
     ssa_name_gen: RefCell<VariableNameGenerator>,
-    stmts: RefCell<Vec<Rc<Statement>>>,
+    builder: Rc<FunctionBuilder>,
     scope: RefCell<Weak<LirFunctionEmitterScope>>,
 }
 
 impl LirExpressionEmitter {
-    pub fn new(scope: Weak<LirFunctionEmitterScope>) -> Self {
+    pub fn new(scope: Weak<LirFunctionEmitterScope>, builder: Rc<FunctionBuilder>) -> Self {
         Self {
             scope: RefCell::new(scope),
+            builder,
             ..Default::default()
         }
     }
@@ -38,12 +39,12 @@ impl LirExpressionEmitter {
 }
 
 impl LirExpressionEmitter {
-    /// If the variable is `None`, returns the identifier for a new temporary variable
+    /// Returns the identifier for a new temporary variable
     pub fn emit_into_variable(
         &self,
         expr: &CheckedExpression,
         variable: Option<LirVariable>,
-    ) -> (Vec<Rc<Statement>>, String) {
+    ) -> String {
         let name = self.ssa_name_gen.borrow_mut().generate();
 
         let var = if let Some(var) = variable {
@@ -61,15 +62,13 @@ impl LirExpressionEmitter {
             ty,
         };
 
-        self.stmts.borrow_mut().push(Rc::new(ssa));
+        self.builder.push(Rc::new(ssa));
 
-        (self.stmts.take(), var_name)
+        var_name
     }
 
-    pub fn emit(&self, expr: &CheckedExpression) -> Vec<Rc<Statement>> {
+    pub fn emit(&self, expr: &CheckedExpression) {
         self.lower_expr(expr, None);
-
-        self.stmts.take()
     }
 
     fn lower_expr(&self, expr: &CheckedExpression, store_in: Option<&LirVariable>) {
@@ -85,17 +84,11 @@ impl LirExpressionEmitter {
             ExpressionKind::Block(stmts) => {
                 let stmt_emitter = &self.scope.borrow().upgrade().unwrap().stmt_emitter;
 
-                let mut block_stmts = if stmts.len() > 1 {
-                    stmts[..(stmts.len() - 1)]
-                        .iter()
-                        .map(|stmt| stmt_emitter.emit(stmt))
-                        .flatten()
-                        .collect::<Vec<Rc<Statement>>>()
-                } else {
-                    vec![]
-                };
-
-                self.stmts.borrow_mut().append(&mut block_stmts);
+                if stmts.len() > 1 {
+                    for stmt in stmts[..(stmts.len() - 1)].iter() {
+                        stmt_emitter.emit(stmt);
+                    }
+                }
 
                 if let Some(last) = stmts.last() {
                     match last.stmt.as_ref() {
@@ -103,9 +96,7 @@ impl LirExpressionEmitter {
                             self.lower_expr(expr, store_in);
                         }
                         _ => {
-                            let mut stmts = stmt_emitter.emit(last);
-
-                            self.stmts.borrow_mut().append(&mut stmts)
+                            stmt_emitter.emit(last);
                         }
                     }
                 };
@@ -115,13 +106,8 @@ impl LirExpressionEmitter {
                 operator,
                 right,
             } => {
-                let (mut left_stmts, left_ssa_name) = self.emit_into_variable(left, None);
-                let (mut right_stmts, right_ssa_name) = self.emit_into_variable(right, None);
-
-                let mut stmts = self.stmts.borrow_mut();
-
-                stmts.append(&mut left_stmts);
-                stmts.append(&mut right_stmts);
+                let left_ssa_name = self.emit_into_variable(left, None);
+                let right_ssa_name = self.emit_into_variable(right, None);
 
                 let lir_expr = Expression::Binary {
                     left: StaticExpression::Identifier(left_ssa_name),
@@ -136,7 +122,7 @@ impl LirExpressionEmitter {
                     ty: expr.ty.clone(),
                 };
 
-                stmts.push(Rc::new(ssa));
+                self.builder.push(Rc::new(ssa));
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Static(Rc::new(
@@ -152,9 +138,7 @@ impl LirExpressionEmitter {
                 }
             }
             ExpressionKind::Unary { operator, expr } => {
-                let (mut lir_stmts, ssa_name) = self.emit_into_variable(expr, None);
-
-                self.stmts.borrow_mut().append(&mut lir_stmts);
+                let ssa_name = self.emit_into_variable(expr, None);
 
                 let lir_expr = Expression::Unary {
                     operator: UnaryOperator::from(operator),
@@ -166,9 +150,7 @@ impl LirExpressionEmitter {
                 }
             }
             ExpressionKind::Grouping(expr) => {
-                let (mut lir_stmts, ssa_name) = self.emit_into_variable(expr, None);
-
-                self.stmts.borrow_mut().append(&mut lir_stmts);
+                let ssa_name = self.emit_into_variable(expr, None);
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Static(Rc::new(
@@ -185,13 +167,10 @@ impl LirExpressionEmitter {
                     _ => todo!("callable expressions are not yet implemented"),
                 };
 
-                let mut stmts = self.stmts.borrow_mut();
-
                 let mut fn_args = vec![];
 
                 for argument in arguments {
-                    let (mut arg_stmts, ssa_name) = self.emit_into_variable(argument, None);
-                    stmts.append(&mut arg_stmts);
+                    let ssa_name = self.emit_into_variable(argument, None);
                     fn_args.push(Rc::new(Expression::Static(Rc::new(
                         StaticExpression::Identifier(ssa_name),
                     ))));
@@ -207,9 +186,7 @@ impl LirExpressionEmitter {
                 }
             }
             ExpressionKind::Cast { expr, ty } => {
-                let (mut lir_stmts, ssa_name) = self.emit_into_variable(expr, None);
-
-                self.stmts.borrow_mut().append(&mut lir_stmts);
+                let ssa_name = self.emit_into_variable(expr, None);
 
                 let lir_expr = Expression::Cast {
                     ty: ty.clone(),
