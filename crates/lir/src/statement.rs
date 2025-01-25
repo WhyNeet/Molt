@@ -2,7 +2,10 @@ use std::rc::Rc;
 
 use common::Type;
 
-use crate::expression::{Expression, StaticExpression};
+use crate::{
+    block::BasicBlock,
+    expression::{Expression, StaticExpression},
+};
 
 #[derive(Debug)]
 pub enum Statement {
@@ -27,9 +30,10 @@ pub enum Statement {
     },
     FunctionDeclaration {
         name: String,
-        block: Vec<Rc<Statement>>,
+        blocks: Vec<BasicBlock>,
         return_type: Type,
         parameters: Vec<(String, Type)>,
     },
+    Goto(u64),
     Return(Rc<StaticExpression>),
 }
