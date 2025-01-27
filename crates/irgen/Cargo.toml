@@ -1,0 +1,8 @@
+[package]
+name = "irgen"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lir = { path = "../lir" }
+common = { path = "../common" }

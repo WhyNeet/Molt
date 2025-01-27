@@ -24,6 +24,14 @@ name = "common"
 version = "0.1.0"
 
 [[package]]
+name = "irgen"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "lir",
+]
+
+[[package]]
 name = "lexer"
 version = "0.1.0"
 dependencies = [

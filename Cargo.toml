@@ -7,5 +7,5 @@ members = [
   "crates/parser",
   "crates/tcast",
   "crates/checker",
-  "crates/lir", "crates/common", "crates/lirgen",
+  "crates/lir", "crates/common", "crates/lirgen", "crates/irgen",
 ]
