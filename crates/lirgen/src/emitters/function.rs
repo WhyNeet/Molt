@@ -4,7 +4,7 @@ use std::{
 };
 
 use common::{Literal, Type};
-use lir::{block::BasicBlock, expression::StaticExpression, statement::Statement};
+use lir::{expression::StaticExpression, statement::Statement};
 use tcast::expression::Expression as CheckedExpression;
 
 use crate::{

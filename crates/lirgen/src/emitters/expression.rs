@@ -17,10 +17,23 @@ use crate::{builder::FunctionBuilder, variable::LirVariable};
 
 use super::function::LirFunctionEmitterScope;
 
+#[derive(Debug)]
+pub enum LirExpressionContext {
+    Default,
+    Loop { loop_id: u64, exit_id: u64 },
+}
+
+impl Default for LirExpressionContext {
+    fn default() -> Self {
+        Self::Default
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct LirExpressionEmitter {
     builder: Rc<FunctionBuilder>,
     scope: RefCell<Weak<LirFunctionEmitterScope>>,
+    cx: RefCell<LirExpressionContext>,
 }
 
 impl LirExpressionEmitter {
@@ -28,6 +41,7 @@ impl LirExpressionEmitter {
         Self {
             scope: RefCell::new(scope),
             builder,
+            ..Default::default()
         }
     }
 
@@ -221,7 +235,43 @@ impl LirExpressionEmitter {
 
                 self.builder.position_at_end(after_conditional_block_id);
             }
-            other => todo!("`{other:?}` is not implemented"),
+            ExpressionKind::Loop(stmts) => {
+                let entry_block_id = self.builder.current_block_id();
+                let loop_block_id = self.builder.append_block();
+                self.builder.position_at_end(entry_block_id);
+                self.builder.push(Rc::new(Statement::Goto(loop_block_id)));
+                let exit_block_id = self.builder.append_block();
+                self.builder.position_at_end(loop_block_id);
+
+                let prev_cx = self.cx.replace(LirExpressionContext::Loop {
+                    loop_id: loop_block_id,
+                    exit_id: exit_block_id,
+                });
+
+                self.lower_block(stmts, None);
+
+                self.cx.replace(prev_cx);
+
+                self.builder.position_at_end(exit_block_id);
+            }
+            ExpressionKind::Break => {
+                let exit_block_id = match &*self.cx.borrow() {
+                    LirExpressionContext::Loop { exit_id, .. } => *exit_id,
+                    _ => unreachable!(),
+                };
+                let goto = Statement::Goto(exit_block_id);
+                self.builder.push(Rc::new(goto));
+            }
+            ExpressionKind::Continue => {
+                let loop_block_id = match &*self.cx.borrow() {
+                    LirExpressionContext::Loop { loop_id, .. } => *loop_id,
+                    _ => unreachable!(),
+                };
+                let goto = Statement::Goto(loop_block_id);
+                self.builder.push(Rc::new(goto));
+            }
+            ExpressionKind::Assignment { identifier, expr } => todo!(),
+            ExpressionKind::MemberAccess { expr, ident } => todo!(),
         }
     }
 
