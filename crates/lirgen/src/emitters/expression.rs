@@ -10,7 +10,7 @@ use lir::{
 };
 use tcast::{
     expression::{Expression as CheckedExpression, ExpressionKind},
-    statement::StatementKind,
+    statement::{Statement as CheckedStatement, StatementKind},
 };
 
 use crate::{builder::FunctionBuilder, var_name_gen::VariableNameGenerator, variable::LirVariable};
@@ -82,24 +82,7 @@ impl LirExpressionEmitter {
                 }
             }
             ExpressionKind::Block(stmts) => {
-                let stmt_emitter = &self.scope.borrow().upgrade().unwrap().stmt_emitter;
-
-                if stmts.len() > 1 {
-                    for stmt in stmts[..(stmts.len() - 1)].iter() {
-                        stmt_emitter.emit(stmt);
-                    }
-                }
-
-                if let Some(last) = stmts.last() {
-                    match last.stmt.as_ref() {
-                        StatementKind::Expression { expr, end_semi } if !*end_semi => {
-                            self.lower_expr(expr, store_in);
-                        }
-                        _ => {
-                            stmt_emitter.emit(last);
-                        }
-                    }
-                };
+                self.lower_block(stmts, store_in);
             }
             ExpressionKind::Binary {
                 left,
@@ -109,25 +92,12 @@ impl LirExpressionEmitter {
                 let left_ssa_name = self.emit_into_variable(left, None);
                 let right_ssa_name = self.emit_into_variable(right, None);
 
-                let lir_expr = Expression::Binary {
-                    left: StaticExpression::Identifier(left_ssa_name),
-                    operator: BinaryOperator::from(operator),
-                    right: StaticExpression::Identifier(right_ssa_name),
-                };
-
-                let ssa_id = self.ssa_name_gen.borrow_mut().generate();
-                let ssa = Statement::StaticVariableDeclaration {
-                    id: ssa_id,
-                    expr: Rc::new(lir_expr),
-                    ty: expr.ty.clone(),
-                };
-
-                self.builder.push(Rc::new(ssa));
-
                 if let Some(variable) = store_in {
-                    variable.store(Rc::new(Expression::Static(Rc::new(
-                        StaticExpression::Identifier(ssa_id.to_string()),
-                    ))));
+                    variable.store(Rc::new(Expression::Binary {
+                        left: StaticExpression::Identifier(left_ssa_name),
+                        operator: BinaryOperator::from(operator),
+                        right: StaticExpression::Identifier(right_ssa_name),
+                    }));
                 }
             }
             ExpressionKind::Identifier(ident) => {
@@ -197,7 +167,68 @@ impl LirExpressionEmitter {
                     variable.store(Rc::new(lir_expr));
                 }
             }
+            ExpressionKind::Conditional {
+                condition,
+                body,
+                alternative,
+            } => {
+                let condition_ssa = self.emit_into_variable(condition, None);
+                let entry_block_id = self.builder.current_block_id();
+                let body_id = self.builder.append_block();
+                self.lower_block(body, store_in);
+
+                let alternative_id = if let Some(stmts) = alternative {
+                    let alternative_id = self.builder.append_block();
+                    self.lower_expr(stmts, store_in);
+                    Some(alternative_id)
+                } else {
+                    None
+                };
+
+                let after_conditional_block_id = self.builder.append_block();
+
+                self.builder.position_at_end(body_id);
+                self.builder
+                    .push(Rc::new(Statement::Goto(after_conditional_block_id)));
+
+                if let Some(alt_id) = alternative_id {
+                    self.builder.position_at_end(alt_id);
+                    self.builder
+                        .push(Rc::new(Statement::Goto(after_conditional_block_id)));
+                }
+
+                let branch = Statement::Branch {
+                    condition: Rc::new(StaticExpression::Identifier(condition_ssa)),
+                    then: body_id,
+                    alternative: alternative_id.unwrap_or(after_conditional_block_id),
+                };
+                self.builder.position_at_end(entry_block_id);
+                self.builder.push(Rc::new(branch));
+
+                self.builder.position_at_end(after_conditional_block_id);
+            }
             other => todo!("`{other:?}` is not implemented"),
         }
+    }
+
+    fn lower_block(&self, stmts: &Vec<Rc<CheckedStatement>>, store_in: Option<&LirVariable>) {
+        let stmt_emitter = &self.scope.borrow().upgrade().unwrap().stmt_emitter;
+
+        if stmts.len() > 1 {
+            for stmt in stmts[..(stmts.len() - 1)].iter() {
+                stmt_emitter.emit(stmt);
+            }
+        }
+
+        if let Some(last) = stmts.last() {
+            match last.stmt.as_ref() {
+                StatementKind::Expression { expr, end_semi } if !*end_semi => {
+                    self.lower_expr(expr, store_in);
+                }
+                _ => {
+                    stmt_emitter.emit(last);
+                }
+            }
+        };
     }
 }
