@@ -250,6 +250,8 @@ impl LirExpressionEmitter {
 
                 self.lower_block(stmts, None);
 
+                self.builder.push(Rc::new(Statement::Goto(loop_block_id)));
+
                 self.cx.replace(prev_cx);
 
                 self.builder.position_at_end(exit_block_id);
