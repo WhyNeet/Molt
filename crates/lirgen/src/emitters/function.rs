@@ -7,7 +7,9 @@ use common::{Literal, Type};
 use lir::{block::BasicBlock, expression::StaticExpression, statement::Statement};
 use tcast::expression::Expression as CheckedExpression;
 
-use crate::builder::FunctionBuilder;
+use crate::{
+    builder::FunctionBuilder, environment::Environment, var_name_gen::VariableNameGenerator,
+};
 
 use super::{expression::LirExpressionEmitter, statement::LirStatementEmitter};
 
@@ -15,6 +17,8 @@ use super::{expression::LirExpressionEmitter, statement::LirStatementEmitter};
 pub struct LirFunctionEmitterScope {
     pub(crate) expr_emitter: LirExpressionEmitter,
     pub(crate) stmt_emitter: LirStatementEmitter,
+    pub(crate) name_gen: RefCell<VariableNameGenerator>,
+    pub(crate) environment: RefCell<Environment>,
 }
 
 #[derive(Debug, Default)]
@@ -34,6 +38,8 @@ impl LirFunctionEmitter {
         let scope = LirFunctionEmitterScope {
             expr_emitter,
             stmt_emitter,
+            name_gen: RefCell::new(VariableNameGenerator::new()),
+            environment: RefCell::default(),
         };
 
         let scope = Rc::new(scope);
@@ -60,6 +66,16 @@ impl LirFunctionEmitter {
                 parameters,
             };
         }
+
+        let parameters = parameters
+            .into_iter()
+            .map(|(name, ty)| {
+                let id = self.scope.name_gen.borrow_mut().generate();
+                self.scope.environment.borrow_mut().define(name, id);
+
+                (id.to_string(), ty)
+            })
+            .collect();
 
         let block = block.unwrap();
         self.builder.append_block();

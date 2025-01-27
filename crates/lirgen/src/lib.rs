@@ -6,6 +6,7 @@ use tcast::statement::Statement as CheckedStatement;
 
 pub mod builder;
 pub mod emitters;
+pub mod environment;
 pub mod var_name_gen;
 pub mod variable;
 

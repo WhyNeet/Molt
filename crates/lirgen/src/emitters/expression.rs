@@ -13,13 +13,12 @@ use tcast::{
     statement::{Statement as CheckedStatement, StatementKind},
 };
 
-use crate::{builder::FunctionBuilder, var_name_gen::VariableNameGenerator, variable::LirVariable};
+use crate::{builder::FunctionBuilder, variable::LirVariable};
 
 use super::function::LirFunctionEmitterScope;
 
 #[derive(Debug, Default)]
 pub struct LirExpressionEmitter {
-    ssa_name_gen: RefCell<VariableNameGenerator>,
     builder: Rc<FunctionBuilder>,
     scope: RefCell<Weak<LirFunctionEmitterScope>>,
 }
@@ -29,7 +28,6 @@ impl LirExpressionEmitter {
         Self {
             scope: RefCell::new(scope),
             builder,
-            ..Default::default()
         }
     }
 
@@ -45,7 +43,14 @@ impl LirExpressionEmitter {
         expr: &CheckedExpression,
         variable: Option<LirVariable>,
     ) -> String {
-        let name = self.ssa_name_gen.borrow_mut().generate();
+        let name = self
+            .scope
+            .borrow()
+            .upgrade()
+            .unwrap()
+            .name_gen
+            .borrow_mut()
+            .generate();
 
         let var = if let Some(var) = variable {
             var
@@ -101,7 +106,16 @@ impl LirExpressionEmitter {
                 }
             }
             ExpressionKind::Identifier(ident) => {
-                let expr = StaticExpression::Identifier(ident.to_string());
+                let id = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .environment
+                    .borrow()
+                    .get(ident)
+                    .unwrap();
+                let expr = StaticExpression::Identifier(id.to_string());
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Static(Rc::new(expr))));

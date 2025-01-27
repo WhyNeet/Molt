@@ -44,11 +44,11 @@ impl LirStatementEmitter {
                 // block implicit returns will be processed differently
                 // this is ONLY for expressions that end with `;`
 
-                if expr.effects.is_empty() {
-                    // if there are no effects
-                    // do not execute an expression statement (skip it)
-                    return;
-                }
+                // if expr.effects.is_empty() {
+                //     // if there are no effects
+                //     // do not execute an expression statement (skip it)
+                //     return;
+                // }
 
                 self.scope
                     .borrow()
@@ -65,18 +65,46 @@ impl LirStatementEmitter {
                     .unwrap()
                     .expr_emitter
                     .emit_into_variable(expr, None);
-
+                let id = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .name_gen
+                    .borrow_mut()
+                    .generate();
                 let stmt = Statement::VariableDeclaration {
-                    name: name.to_string(),
+                    name: id.to_string(),
                     expr: Rc::new(Expression::Static(Rc::new(StaticExpression::Identifier(
                         ssa_name,
                     )))),
                     ty: ty.clone(),
                 };
 
+                self.scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .environment
+                    .borrow_mut()
+                    .define(name.to_string(), id);
+
                 self.builder.push(Rc::new(stmt));
             }
-            _ => todo!(),
+            StatementKind::FunctionDeclaration { .. } => unreachable!(),
+            StatementKind::Return(expr) => {
+                let ssa_name = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .expr_emitter
+                    .emit_into_variable(expr, None);
+
+                let ret = Statement::Return(Rc::new(StaticExpression::Identifier(ssa_name)));
+
+                self.builder.push(Rc::new(ret));
+            }
         }
     }
 }
