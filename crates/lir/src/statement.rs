@@ -35,5 +35,10 @@ pub enum Statement {
         parameters: Vec<(String, Type)>,
     },
     Goto(u64),
+    Branch {
+        condition: Rc<StaticExpression>,
+        then: u64,
+        alternative: u64,
+    },
     Return(Rc<StaticExpression>),
 }
