@@ -14,7 +14,7 @@ pub enum Statement {
         end_semi: bool,
     },
     VariableDeclaration {
-        name: String,
+        name: u64,
         expr: Rc<Expression>,
         ty: Type,
     },

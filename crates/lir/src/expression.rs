@@ -33,5 +33,6 @@ pub enum Expression {
 #[derive(Debug)]
 pub enum StaticExpression {
     Literal(Rc<Literal>),
-    Identifier(String),
+    Identifier(u64),
+    FnIdentifier(String),
 }
