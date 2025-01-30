@@ -592,6 +592,7 @@ impl Checker {
                             }
                         }
                         ty = Some(Type::NoReturn);
+                        break;
                     }
                     StatementKind::Expression { end_semi, .. } if !*end_semi => {
                         panic!("[block] implicit return can only appear at the end of the block.")
@@ -612,17 +613,30 @@ impl Checker {
                         }
                     }
 
-                    expr.ty.clone()
+                    if let Some(ref ty) = ty {
+                        if ty == &Type::NoReturn {
+                            Type::NoReturn
+                        } else {
+                            expr.ty.clone()
+                        }
+                    } else {
+                        expr.ty.clone()
+                    }
                 }
                 StatementKind::Return(_) => Type::NoReturn,
                 _ => Type::Unit,
             };
 
-            effects.append(&mut checked.effects.clone());
-            checked_stmts.push(Rc::new(checked));
+            if !ty.as_ref().map(|ty| ty == &Type::NoReturn).unwrap_or(false) {
+                effects.append(&mut checked.effects.clone());
+                checked_stmts.push(Rc::new(checked));
+            }
 
             if let Some(ty) = ty {
-                if !type_cmp(&ret_ty, &ty, true) {
+                if !type_cmp(&ret_ty, &Type::NoReturn, true)
+                    && !type_cmp(&ty, &Type::NoReturn, true)
+                    && !type_cmp(&ret_ty, &ty, true)
+                {
                     panic!(
                         "[block] expected return type: `{:?}`, got `{:?}`",
                         ty, ret_ty

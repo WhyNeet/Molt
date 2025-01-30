@@ -75,13 +75,11 @@ impl LirExpressionEmitter {
 
         let (var_name, expr, ty) = var.take();
 
-        let ssa = Statement::StaticVariableDeclaration {
-            id: name,
-            expr: expr.unwrap(),
-            ty,
-        };
+        if let Some(expr) = expr {
+            let ssa = Statement::StaticVariableDeclaration { id: name, expr, ty };
 
-        self.builder.push(Rc::new(ssa));
+            self.builder.push(Rc::new(ssa));
+        }
 
         var_name
     }
@@ -130,6 +128,8 @@ impl LirExpressionEmitter {
                     .get(ident)
                     .unwrap();
                 let expr = StaticExpression::Identifier(id);
+
+                println!("lower for ident: {ident}; {store_in:?}");
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Static(Rc::new(expr))));

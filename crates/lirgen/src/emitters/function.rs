@@ -96,7 +96,9 @@ impl LirFunctionEmitter {
             Statement::Return(Rc::new(StaticExpression::Literal(Rc::new(Literal::Unit))))
         };
 
-        self.builder.push(Rc::new(ret));
+        if block.ty != Type::NoReturn {
+            self.builder.push(Rc::new(ret));
+        }
 
         Statement::FunctionDeclaration {
             name,
