@@ -75,9 +75,10 @@ impl LirStatementEmitter {
                     .generate();
                 let stmt = Statement::VariableDeclaration {
                     name: id,
-                    expr: Rc::new(Expression::Static(Rc::new(StaticExpression::Identifier(
-                        ssa_name,
-                    )))),
+                    expr: Rc::new(Expression::Static(
+                        Rc::new(StaticExpression::Identifier(ssa_name)),
+                        expr.ty.clone(),
+                    )),
                     ty: ty.clone(),
                 };
 

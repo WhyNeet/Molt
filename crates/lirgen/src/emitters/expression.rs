@@ -91,8 +91,10 @@ impl LirExpressionEmitter {
     fn lower_expr(&self, expr: &CheckedExpression, store_in: Option<&LirVariable>) {
         match expr.expr.as_ref() {
             ExpressionKind::Literal(literal) => {
-                let expr =
-                    Expression::Static(Rc::new(StaticExpression::Literal(Rc::clone(literal))));
+                let expr = Expression::Static(
+                    Rc::new(StaticExpression::Literal(Rc::clone(literal))),
+                    expr.ty.clone(),
+                );
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(expr));
@@ -114,6 +116,7 @@ impl LirExpressionEmitter {
                         left: StaticExpression::Identifier(left_ssa_name),
                         operator: BinaryOperator::from(operator),
                         right: StaticExpression::Identifier(right_ssa_name),
+                        ty: expr.ty.clone(),
                     }));
                 }
             }
@@ -127,33 +130,39 @@ impl LirExpressionEmitter {
                     .borrow()
                     .get(ident)
                     .unwrap();
-                let expr = StaticExpression::Identifier(id);
-
-                println!("lower for ident: {ident}; {store_in:?}");
+                let sub_expr = StaticExpression::Identifier(id);
 
                 if let Some(variable) = store_in {
-                    variable.store(Rc::new(Expression::Static(Rc::new(expr))));
+                    variable.store(Rc::new(Expression::Static(
+                        Rc::new(sub_expr),
+                        expr.ty.clone(),
+                    )));
                 }
             }
-            ExpressionKind::Unary { operator, expr } => {
-                let ssa_name = self.emit_into_variable(expr, None);
+            ExpressionKind::Unary {
+                operator,
+                expr: sub_expr,
+            } => {
+                let ssa_name = self.emit_into_variable(sub_expr, None);
 
                 let lir_expr = Expression::Unary {
                     operator: UnaryOperator::from(operator),
                     expr: StaticExpression::Identifier(ssa_name),
+                    ty: expr.ty.clone(),
                 };
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(lir_expr));
                 }
             }
-            ExpressionKind::Grouping(expr) => {
-                let ssa_name = self.emit_into_variable(expr, None);
+            ExpressionKind::Grouping(sub_expr) => {
+                let ssa_name = self.emit_into_variable(sub_expr, None);
 
                 if let Some(variable) = store_in {
-                    variable.store(Rc::new(Expression::Static(Rc::new(
-                        StaticExpression::Identifier(ssa_name),
-                    ))));
+                    variable.store(Rc::new(Expression::Static(
+                        Rc::new(StaticExpression::Identifier(ssa_name)),
+                        expr.ty.clone(),
+                    )));
                 }
             }
             ExpressionKind::Call {
@@ -169,17 +178,20 @@ impl LirExpressionEmitter {
 
                 for argument in arguments {
                     let ssa_name = self.emit_into_variable(argument, None);
-                    fn_args.push(Rc::new(Expression::Static(Rc::new(
-                        StaticExpression::Identifier(ssa_name),
-                    ))));
+                    fn_args.push(Rc::new(Expression::Static(
+                        Rc::new(StaticExpression::Identifier(ssa_name)),
+                        expr.ty.clone(),
+                    )));
                 }
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Call {
-                        expr: Rc::new(Expression::Static(Rc::new(StaticExpression::FnIdentifier(
-                            fn_ident.to_string(),
-                        )))),
+                        expr: Rc::new(Expression::Static(
+                            Rc::new(StaticExpression::FnIdentifier(fn_ident.to_string())),
+                            sub_expr.ty.clone(),
+                        )),
                         arguments: fn_args,
+                        ty: expr.ty.clone(),
                     }));
                 }
             }
