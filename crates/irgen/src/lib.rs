@@ -7,20 +7,21 @@ use emitters::module::IrModuleEmitter;
 use inkwell::{context::Context, module::Module};
 use lir::module::LirModule;
 
-pub struct IrEmitter<'a> {
-    module: LirModule,
-    emitter: IrModuleEmitter<'a>,
+pub struct IrEmitter {
+    context: Context,
 }
 
-impl<'a> IrEmitter<'a> {
-    pub fn new(module: LirModule) -> Self {
+impl IrEmitter {
+    pub fn new() -> Self {
         Self {
-            module,
-            emitter: IrModuleEmitter::new(Context::create()),
+            context: Context::create(),
         }
     }
 
-    pub fn emit_llvm_ir(&'a self) -> Rc<Module<'a>> {
-        self.emitter.emit(&self.module)
+    pub fn run<'ctx>(&'ctx self, module: LirModule) -> Rc<Module<'ctx>> {
+        let emitter = IrModuleEmitter::new(&self.context);
+
+        emitter.emit(&module);
+        emitter.scope.module()
     }
 }
