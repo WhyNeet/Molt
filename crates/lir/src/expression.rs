@@ -10,14 +10,17 @@ pub enum Expression {
         left: StaticExpression,
         operator: BinaryOperator,
         right: StaticExpression,
+        ty: Type,
     },
     Unary {
         operator: UnaryOperator,
         expr: StaticExpression,
+        ty: Type,
     },
     MemberAccess {
         expr: Rc<Expression>,
         ident: String,
+        ty: Type,
     },
     Cast {
         expr: Rc<StaticExpression>,
@@ -26,8 +29,9 @@ pub enum Expression {
     Call {
         expr: Rc<Expression>,
         arguments: Vec<Rc<Expression>>,
+        ty: Type,
     },
-    Static(Rc<StaticExpression>),
+    Static(Rc<StaticExpression>, Type),
 }
 
 #[derive(Debug)]
