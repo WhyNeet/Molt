@@ -7,7 +7,7 @@ use inkwell::{
 };
 use lir::{
     expression::{Expression, StaticExpression},
-    operator::BinaryOperator,
+    operator::{BinaryOperator, UnaryOperator},
 };
 
 use crate::util;
@@ -180,6 +180,52 @@ impl<'a> IrExpressionEmitter<'a> {
                             .unwrap()
                             .as_basic_value_enum(),
                         _ => todo!(),
+                    }
+                };
+
+                Some((
+                    util::into_primitive_context_type(ty, &self.mod_scope.context()),
+                    res,
+                ))
+            }
+            Expression::Unary { operator, expr, ty } => {
+                let expr = self.emit_static_expression(expr).unwrap();
+
+                let is_int = match ty {
+                    Type::Float32 | Type::Float64 => false,
+                    _ => true,
+                };
+
+                let res = if is_int {
+                    let value = expr.1.into_int_value();
+                    let name = &store_in.unwrap().to_string();
+
+                    match operator {
+                        UnaryOperator::Neg => self
+                            .mod_scope
+                            .builder()
+                            .build_int_neg(value, name)
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        UnaryOperator::Not => self
+                            .mod_scope
+                            .builder()
+                            .build_not(value, name)
+                            .unwrap()
+                            .as_basic_value_enum(),
+                    }
+                } else {
+                    let value = expr.1.into_float_value();
+                    let name = &store_in.unwrap().to_string();
+
+                    match operator {
+                        UnaryOperator::Neg => self
+                            .mod_scope
+                            .builder()
+                            .build_float_neg(value, name)
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        UnaryOperator::Not => todo!(),
                     }
                 };
 
