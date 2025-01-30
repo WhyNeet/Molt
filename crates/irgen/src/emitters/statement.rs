@@ -37,7 +37,7 @@ impl<'a> IrStatementEmitter<'a> {
 
         match statement.as_ref() {
             Statement::StaticVariableDeclaration { id, expr, ty } => {
-                let (ty, value) = expr_emitter.emit(Rc::clone(expr)).unwrap();
+                let (ty, value) = expr_emitter.emit(Rc::clone(expr), Some(*id)).unwrap();
 
                 self.fn_scope.define(*id, VariableData::new(ty, value));
             }
@@ -52,7 +52,7 @@ impl<'a> IrStatementEmitter<'a> {
                     .unwrap();
             }
             Statement::VariableDeclaration { name, expr, ty } => {
-                let (ty, value) = expr_emitter.emit(Rc::clone(expr)).unwrap();
+                let (ty, value) = expr_emitter.emit(Rc::clone(expr), Some(*name)).unwrap();
 
                 self.fn_scope.define(*name, VariableData::new(ty, value));
             }
