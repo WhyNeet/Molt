@@ -5,13 +5,13 @@ use lir::expression::{Expression, StaticExpression};
 
 #[derive(Debug)]
 pub struct LirVariable {
-    name: String,
+    name: u64,
     ty: Type,
     expr: RefCell<Option<Rc<Expression>>>,
 }
 
 impl LirVariable {
-    pub fn new(name: String, ty: Type) -> Self {
+    pub fn new(name: u64, ty: Type) -> Self {
         Self {
             name,
             expr: RefCell::default(),
@@ -29,7 +29,7 @@ impl LirVariable {
         *var_expr = Some(expr);
     }
 
-    pub fn take(self) -> (String, Option<Rc<Expression>>, Type) {
+    pub fn take(self) -> (u64, Option<Rc<Expression>>, Type) {
         (self.name, self.expr.borrow().clone(), self.ty)
     }
 }

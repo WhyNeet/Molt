@@ -74,7 +74,7 @@ impl LirStatementEmitter {
                     .borrow_mut()
                     .generate();
                 let stmt = Statement::VariableDeclaration {
-                    name: id.to_string(),
+                    name: id,
                     expr: Rc::new(Expression::Static(Rc::new(StaticExpression::Identifier(
                         ssa_name,
                     )))),

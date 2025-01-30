@@ -56,7 +56,7 @@ impl LirExpressionEmitter {
         &self,
         expr: &CheckedExpression,
         variable: Option<LirVariable>,
-    ) -> String {
+    ) -> u64 {
         let name = self
             .scope
             .borrow()
@@ -69,7 +69,7 @@ impl LirExpressionEmitter {
         let var = if let Some(var) = variable {
             var
         } else {
-            LirVariable::new(name.to_string(), expr.ty.clone())
+            LirVariable::new(name, expr.ty.clone())
         };
         self.lower_expr(expr, Some(&var));
 
@@ -129,7 +129,7 @@ impl LirExpressionEmitter {
                     .borrow()
                     .get(ident)
                     .unwrap();
-                let expr = StaticExpression::Identifier(id.to_string());
+                let expr = StaticExpression::Identifier(id);
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Static(Rc::new(expr))));
@@ -176,7 +176,7 @@ impl LirExpressionEmitter {
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Call {
-                        expr: Rc::new(Expression::Static(Rc::new(StaticExpression::Identifier(
+                        expr: Rc::new(Expression::Static(Rc::new(StaticExpression::FnIdentifier(
                             fn_ident.to_string(),
                         )))),
                         arguments: fn_args,
