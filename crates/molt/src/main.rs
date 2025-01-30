@@ -1,6 +1,7 @@
-use std::fs;
+use std::{fs, ptr};
 
 use checker::Checker;
+use irgen::IrEmitter;
 use lexer::scanner::Scanner;
 use lirgen::emitters::module::LirModuleEmitter;
 use parser::Parser;
@@ -14,7 +15,14 @@ fn main() {
 
     let tree = Checker::new(tree).check();
 
-    let tree = LirModuleEmitter::new().emit(tree);
+    let module = LirModuleEmitter::new().emit(tree);
 
-    println!("parsed tree:\n{tree:?}");
+    println!("parsed tree:\n{module:?}");
+
+    let emitter = IrEmitter::new(module);
+    let ir = unsafe { (&emitter as *const IrEmitter).as_ref().unwrap() }.emit_llvm_ir();
+
+    println!("\n>>> IR >>>\n");
+
+    ir.print_to_stderr();
 }
