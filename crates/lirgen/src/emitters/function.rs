@@ -88,7 +88,7 @@ impl LirFunctionEmitter {
                 let id = self.scope.name_gen.borrow_mut().generate();
                 self.scope.environment.borrow_mut().define(name, id);
 
-                (id.to_string(), ty)
+                (id, ty)
             })
             .collect();
 
