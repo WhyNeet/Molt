@@ -29,7 +29,7 @@ pub enum Statement {
         parameters: Vec<(String, Type)>,
     },
     FunctionDeclaration {
-        name: String,
+        id: u64,
         blocks: Vec<BasicBlock>,
         return_type: Type,
         parameters: Vec<(String, Type)>,
