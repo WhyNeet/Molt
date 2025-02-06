@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use lir::{module::LirModule, statement::Statement};
 use tcast::{
@@ -8,9 +8,30 @@ use tcast::{
 
 use super::function::LirFunctionEmitter;
 
+#[derive(Debug, Default)]
+pub struct LirModuleEmitterScope {
+    mapping: RefCell<HashMap<String, u64>>,
+}
+
+impl LirModuleEmitterScope {
+    pub fn define(&self, name: String) -> u64 {
+        let mut mapping = self.mapping.borrow_mut();
+        let id = mapping.len() as u64;
+        mapping.insert(name, id);
+
+        id
+    }
+
+    pub fn get(&self, name: &str) -> Option<u64> {
+        self.mapping.borrow().get(name).map(|n| *n)
+    }
+}
+
+#[derive(Default)]
 pub struct LirModuleEmitter {
     stmts: RefCell<Vec<Rc<Statement>>>,
     entrypoint: RefCell<Option<String>>,
+    scope: Rc<LirModuleEmitterScope>,
 }
 
 impl LirModuleEmitter {
@@ -18,6 +39,7 @@ impl LirModuleEmitter {
         Self {
             stmts: RefCell::default(),
             entrypoint: RefCell::default(),
+            ..Default::default()
         }
     }
 }
@@ -42,7 +64,7 @@ impl LirModuleEmitter {
                         *entrypoint = Some(name.clone());
                     }
 
-                    LirFunctionEmitter::new().emit(
+                    LirFunctionEmitter::new(Rc::clone(&self.scope)).emit(
                         name.clone(),
                         block.clone(),
                         return_type.clone(),

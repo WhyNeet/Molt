@@ -11,7 +11,9 @@ use crate::{
     builder::FunctionBuilder, environment::Environment, var_name_gen::VariableNameGenerator,
 };
 
-use super::{expression::LirExpressionEmitter, statement::LirStatementEmitter};
+use super::{
+    expression::LirExpressionEmitter, module::LirModuleEmitterScope, statement::LirStatementEmitter,
+};
 
 #[derive(Debug, Default)]
 pub struct LirFunctionEmitterScope {
@@ -25,14 +27,16 @@ pub struct LirFunctionEmitterScope {
 pub struct LirFunctionEmitter {
     scope: Rc<LirFunctionEmitterScope>,
     builder: Rc<FunctionBuilder>,
+    mod_scope: Rc<LirModuleEmitterScope>,
 }
 
 impl LirFunctionEmitter {
-    pub fn new() -> Self {
+    pub fn new(mod_scope: Rc<LirModuleEmitterScope>) -> Self {
         let builder = FunctionBuilder::new();
         let builder = Rc::new(builder);
 
-        let expr_emitter = LirExpressionEmitter::new(Weak::new(), Rc::clone(&builder));
+        let expr_emitter =
+            LirExpressionEmitter::new(Rc::clone(&mod_scope), Weak::new(), Rc::clone(&builder));
         let stmt_emitter = LirStatementEmitter::new(Weak::new(), Rc::clone(&builder));
 
         let scope = LirFunctionEmitterScope {
@@ -47,7 +51,11 @@ impl LirFunctionEmitter {
         scope.expr_emitter.update_scope(Rc::downgrade(&scope));
         scope.stmt_emitter.update_scope(Rc::downgrade(&scope));
 
-        Self { scope, builder }
+        Self {
+            scope,
+            builder,
+            mod_scope,
+        }
     }
 }
 
@@ -66,6 +74,8 @@ impl LirFunctionEmitter {
                 parameters,
             };
         }
+
+        let id = self.mod_scope.define(name);
 
         let parameters = parameters
             .into_iter()
@@ -101,7 +111,7 @@ impl LirFunctionEmitter {
         }
 
         Statement::FunctionDeclaration {
-            name,
+            id,
             blocks: self.builder.into_blocks(),
             return_type,
             parameters,

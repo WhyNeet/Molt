@@ -15,7 +15,7 @@ use tcast::{
 
 use crate::{builder::FunctionBuilder, variable::LirVariable};
 
-use super::function::LirFunctionEmitterScope;
+use super::{function::LirFunctionEmitterScope, module::LirModuleEmitterScope};
 
 #[derive(Debug)]
 pub enum LirExpressionContext {
@@ -33,14 +33,20 @@ impl Default for LirExpressionContext {
 pub struct LirExpressionEmitter {
     builder: Rc<FunctionBuilder>,
     scope: RefCell<Weak<LirFunctionEmitterScope>>,
+    mod_scope: Rc<LirModuleEmitterScope>,
     cx: RefCell<LirExpressionContext>,
 }
 
 impl LirExpressionEmitter {
-    pub fn new(scope: Weak<LirFunctionEmitterScope>, builder: Rc<FunctionBuilder>) -> Self {
+    pub fn new(
+        mod_scope: Rc<LirModuleEmitterScope>,
+        scope: Weak<LirFunctionEmitterScope>,
+        builder: Rc<FunctionBuilder>,
+    ) -> Self {
         Self {
             scope: RefCell::new(scope),
             builder,
+            mod_scope,
             ..Default::default()
         }
     }
@@ -174,6 +180,8 @@ impl LirExpressionEmitter {
                     _ => todo!("callable expressions are not yet implemented"),
                 };
 
+                let fn_id = self.mod_scope.get(fn_ident).unwrap();
+
                 let mut fn_args = vec![];
 
                 for argument in arguments {
@@ -187,7 +195,7 @@ impl LirExpressionEmitter {
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Call {
                         expr: Rc::new(Expression::Static(
-                            Rc::new(StaticExpression::FnIdentifier(fn_ident.to_string())),
+                            Rc::new(StaticExpression::FnIdentifier(fn_id.to_string())),
                             sub_expr.ty.clone(),
                         )),
                         arguments: fn_args,
