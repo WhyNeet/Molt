@@ -1,6 +1,6 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use inkwell::{builder::Builder, context::Context, module::Module};
+use inkwell::{builder::Builder, context::Context, module::Module, values::FunctionValue};
 use lir::{module::LirModule, statement::Statement};
 
 use super::function::IrFunctionEmitter;
@@ -9,6 +9,7 @@ pub struct ModuleEmitterScope<'a> {
     context: &'a Context,
     builder: RefCell<Option<Rc<Builder<'a>>>>,
     module: RefCell<Option<Rc<Module<'a>>>>,
+    functions: RefCell<HashMap<String, FunctionValue<'a>>>,
 }
 
 impl<'a> ModuleEmitterScope<'a> {
@@ -22,6 +23,14 @@ impl<'a> ModuleEmitterScope<'a> {
 
     pub fn module(&self) -> Rc<Module<'a>> {
         Rc::clone(self.module.borrow().as_ref().unwrap())
+    }
+
+    pub fn define_function(&self, name: String, function: FunctionValue<'a>) {
+        self.functions.borrow_mut().insert(name, function);
+    }
+
+    pub fn get_function(&self, name: &str) -> Option<FunctionValue<'a>> {
+        self.functions.borrow().get(name).map(|f| *f)
     }
 
     fn init(&self) {
@@ -40,6 +49,7 @@ impl<'a> IrModuleEmitter<'a> {
             context,
             builder: RefCell::default(),
             module: RefCell::default(),
+            functions: RefCell::default(),
         };
 
         Self {
@@ -65,7 +75,7 @@ impl<'a> IrModuleEmitter<'a> {
                     blocks,
                     return_type,
                     parameters,
-                } => fn_emitter.emit(name, parameters, blocks, return_type),
+                } => fn_emitter.emit(name.to_string(), parameters, blocks, return_type),
                 _ => todo!(),
             }
         }

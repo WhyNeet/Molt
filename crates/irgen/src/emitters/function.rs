@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{borrow::Borrow, cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
 
 use common::Type;
 use inkwell::{
@@ -62,72 +62,76 @@ impl<'a> IrFunctionEmitter<'a> {
 impl<'a> IrFunctionEmitter<'a> {
     pub fn emit(
         &self,
-        name: &str,
-        parameters: &Vec<(String, Type)>,
+        name: String,
+        parameters: &Vec<(u64, Type)>,
         blocks: &Vec<LirBasicBlock>,
         return_type: &Type,
     ) {
         let parameters = parameters
             .iter()
-            .map(|(_name, ty)| {
+            .map(|(_id, ty)| {
                 util::into_primitive_context_type(ty, self.mod_scope.context()).as_basic_type_enum()
             })
-            .map(|ty| BasicMetadataTypeEnum::from(ty))
+            .collect::<Vec<_>>();
+
+        let fn_parameters = parameters
+            .iter()
+            .map(|ty| BasicMetadataTypeEnum::from(*ty))
             .collect::<Vec<BasicMetadataTypeEnum>>();
 
         let function = self.mod_scope.module().add_function(
-            name,
+            &name,
             match return_type {
                 Type::Bool => self
                     .mod_scope
                     .context()
                     .bool_type()
-                    .fn_type(&parameters, false),
+                    .fn_type(&fn_parameters, false),
                 Type::Unit => self
                     .mod_scope
                     .context()
                     .void_type()
-                    .fn_type(&parameters, false),
+                    .fn_type(&fn_parameters, false),
                 Type::Char => self
                     .mod_scope
                     .context()
                     .i8_type()
-                    .fn_type(&parameters, false),
+                    .fn_type(&fn_parameters, false),
                 Type::Str => self
                     .mod_scope
                     .context()
                     .ptr_type(AddressSpace::default())
-                    .fn_type(&parameters, false),
+                    .fn_type(&fn_parameters, false),
                 Type::Float32 => self
                     .mod_scope
                     .context()
                     .f32_type()
-                    .fn_type(&parameters, false),
+                    .fn_type(&fn_parameters, false),
                 Type::Float64 => self
                     .mod_scope
                     .context()
                     .f64_type()
-                    .fn_type(&parameters, false),
+                    .fn_type(&fn_parameters, false),
                 Type::UInt8 | Type::Int8 => self
                     .mod_scope
                     .context()
                     .i8_type()
-                    .fn_type(&parameters, false),
+                    .fn_type(&fn_parameters, false),
                 Type::UInt16 | Type::Int16 => self
                     .mod_scope
                     .context()
                     .i16_type()
-                    .fn_type(&parameters, false),
+                    .fn_type(&fn_parameters, false),
                 Type::UInt32 | Type::Int32 => self
                     .mod_scope
                     .context()
                     .i32_type()
-                    .fn_type(&parameters, false),
+                    .fn_type(&fn_parameters, false),
                 Type::UInt64 | Type::Int64 => self
                     .mod_scope
                     .context()
                     .i64_type()
-                    .fn_type(&parameters, false),
+                    .fn_type(&fn_parameters, false),
                 Type::Callable {
                     parameters,
                     return_type,
@@ -136,6 +140,18 @@ impl<'a> IrFunctionEmitter<'a> {
             },
             None,
         );
+
+        self.mod_scope.define_function(name, function);
+
+        for (id, ty) in parameters.iter().enumerate() {
+            self.scope.ssa.borrow_mut().insert(
+                id as u64,
+                VariableData {
+                    ty: *ty,
+                    value: function.get_params()[id],
+                },
+            );
+        }
 
         for block in blocks {
             self.emit_for_block(block, function);

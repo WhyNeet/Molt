@@ -3,7 +3,7 @@ use std::rc::Rc;
 use common::{Literal, Number, Type};
 use inkwell::{
     types::{BasicType, BasicTypeEnum},
-    values::{BasicValue, BasicValueEnum},
+    values::{BasicMetadataValueEnum, BasicValue, BasicValueEnum},
 };
 use lir::{
     expression::{Expression, StaticExpression},
@@ -234,6 +234,44 @@ impl<'a> IrExpressionEmitter<'a> {
                     res,
                 ))
             }
+            Expression::Call {
+                expr,
+                arguments,
+                ty,
+            } => {
+                let name = match expr.as_ref() {
+                    Expression::Static(expr, _) => match expr.as_ref() {
+                        StaticExpression::FnIdentifier(ident) => ident,
+                        _ => unreachable!(),
+                    },
+                    _ => unreachable!(),
+                };
+
+                let func = self.mod_scope.get_function(name).unwrap();
+
+                let args = arguments
+                    .iter()
+                    .map(|arg| self.emit(Rc::clone(arg), None).unwrap())
+                    .collect::<Vec<_>>();
+
+                let value = self
+                    .mod_scope
+                    .builder()
+                    .build_call(
+                        func,
+                        &args
+                            .into_iter()
+                            .map(|(_, val)| BasicMetadataValueEnum::from(val))
+                            .collect::<Vec<BasicMetadataValueEnum>>(),
+                        name,
+                    )
+                    .unwrap();
+
+                Some((
+                    util::into_primitive_context_type(ty, &self.mod_scope.context()),
+                    value.try_as_basic_value().left().unwrap(),
+                ))
+            }
             _ => todo!(),
         }
     }
@@ -332,7 +370,7 @@ impl<'a> IrExpressionEmitter<'a> {
                 }
             }
             StaticExpression::FnIdentifier(ident) => {
-                panic!("call `{ident}`: function calling is not yet implemented")
+                panic!("{ident}")
             }
         }
     }
