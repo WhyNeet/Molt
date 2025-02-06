@@ -32,7 +32,7 @@ pub enum Statement {
         name: String,
         blocks: Vec<BasicBlock>,
         return_type: Type,
-        parameters: Vec<(String, Type)>,
+        parameters: Vec<(u64, Type)>,
     },
     Goto(u64),
     Branch {
