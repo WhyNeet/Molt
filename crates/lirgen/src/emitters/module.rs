@@ -30,7 +30,7 @@ impl LirModuleEmitterScope {
 #[derive(Default)]
 pub struct LirModuleEmitter {
     stmts: RefCell<Vec<Rc<Statement>>>,
-    entrypoint: RefCell<Option<String>>,
+    entrypoint: RefCell<Option<u64>>,
     scope: Rc<LirModuleEmitterScope>,
 }
 
@@ -55,21 +55,36 @@ impl LirModuleEmitter {
                     parameters,
                     return_type,
                 } => {
-                    if attributes.contains(&FunctionAttribute::Main) {
-                        let mut entrypoint = self.entrypoint.borrow_mut();
-                        if entrypoint.is_some() {
-                            panic!("a module cannot have multiple entrypoints.")
-                        }
+                    let is_main = attributes.contains(&FunctionAttribute::Main);
 
-                        *entrypoint = Some(name.clone());
-                    }
-
-                    LirFunctionEmitter::new(Rc::clone(&self.scope)).emit(
-                        name.clone(),
+                    let func = LirFunctionEmitter::new(Rc::clone(&self.scope)).emit(
+                        if is_main {
+                            "main".to_string()
+                        } else {
+                            name.clone()
+                        },
                         block.clone(),
                         return_type.clone(),
                         parameters.clone(),
-                    )
+                        is_main,
+                    );
+
+                    if attributes.contains(&FunctionAttribute::Main) {
+                        // let mut entrypoint = self.entrypoint.borrow_mut();
+                        // if entrypoint.is_some() {
+                        //     panic!("a module cannot have multiple entrypoints.")
+                        // }
+
+                        // *entrypoint = Some(match &func {
+                        //     Statement::FunctionDeclaration { name, .. } => name.to_st,
+                        //     Statement::ExternalFunctionDeclaration { name, .. } => {
+                        //         panic!("external function `{name}` cannot be an entrypoint.")
+                        //     }
+                        //     _ => unreachable!(),
+                        // });
+                    }
+
+                    func
                 }
                 _ => todo!(),
             };
@@ -77,6 +92,6 @@ impl LirModuleEmitter {
             self.stmts.borrow_mut().push(Rc::new(stmt));
         }
 
-        LirModule::new(self.stmts.take(), self.entrypoint.take())
+        LirModule::new(self.stmts.take())
     }
 }

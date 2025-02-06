@@ -180,7 +180,7 @@ impl LirExpressionEmitter {
                     _ => todo!("callable expressions are not yet implemented"),
                 };
 
-                let fn_id = self.mod_scope.get(fn_ident).unwrap();
+                let fn_ident = self.mod_scope.get(fn_ident).unwrap().to_string();
 
                 let mut fn_args = vec![];
 
@@ -195,7 +195,7 @@ impl LirExpressionEmitter {
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Call {
                         expr: Rc::new(Expression::Static(
-                            Rc::new(StaticExpression::FnIdentifier(fn_id.to_string())),
+                            Rc::new(StaticExpression::FnIdentifier(fn_ident)),
                             sub_expr.ty.clone(),
                         )),
                         arguments: fn_args,

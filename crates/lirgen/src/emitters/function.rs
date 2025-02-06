@@ -66,6 +66,7 @@ impl LirFunctionEmitter {
         block: Option<Rc<CheckedExpression>>,
         return_type: Type,
         parameters: Vec<(String, Type)>,
+        no_mangle: bool,
     ) -> Statement {
         if block.is_none() {
             return Statement::ExternalFunctionDeclaration {
@@ -75,7 +76,11 @@ impl LirFunctionEmitter {
             };
         }
 
-        let id = self.mod_scope.define(name);
+        let id = if no_mangle {
+            name
+        } else {
+            self.mod_scope.define(name).to_string()
+        };
 
         let parameters = parameters
             .into_iter()
@@ -111,7 +116,7 @@ impl LirFunctionEmitter {
         }
 
         Statement::FunctionDeclaration {
-            id,
+            name: id,
             blocks: self.builder.into_blocks(),
             return_type,
             parameters,
