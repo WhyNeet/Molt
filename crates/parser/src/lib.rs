@@ -249,11 +249,14 @@ impl Parser {
             .to_string();
 
         let ty = if self.matches(TokenKind::Colon).is_some() {
+            let is_ptr = self.matches(TokenKind::Star).is_some();
+
             self.matches(TokenKind::Ident(String::new()))
                 .expect("expected type.")
                 .as_ident()
                 .map(Type::try_from)
                 .map(|ty| ty.unwrap())
+                .map(|ty| if is_ptr { Type::Ptr(Box::new(ty)) } else { ty })
         } else {
             None
         };
