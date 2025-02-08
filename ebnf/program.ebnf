@@ -6,10 +6,10 @@ annotated = { annotation " " } statement ;
 
 decl_stmt = var_decl | fun_decl ;
 
-var_decl = "let" IDENTIFIER [ ":" TYPE ] "=" expression ";" ;
+var_decl = "let" IDENTIFIER [ ":" type ] "=" expression ";" ;
 
-fun_decl = "fun" IDENTIFIER "(" [ parameters ] ")" [ "->" TYPE ] ( "=" expression | ";" ) ;
-parameters = IDENTIFIER ":" TYPE { "," IDENTIFIER ":" TYPE } ;
+fun_decl = "fun" IDENTIFIER "(" [ parameters ] ")" [ "->" type ] ( "=" expression | ";" ) ;
+parameters = IDENTIFIER ":" type { "," IDENTIFIER ":" type } ;
 
 expr_stmt = expression ";" ;
 
@@ -17,3 +17,6 @@ annotation = "@" IDENTIFIER [ "(" [ annotation_data ] ")" ] ;
 annotation_data = IDENTIFIER { "," IDENTIFIER } ;
 
 return_stmt = "return" expression ";" ;
+
+
+type = [ "*" ] IDENTIFIER ;
