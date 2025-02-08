@@ -1,7 +1,7 @@
 use std::{fs, ptr};
 
 use checker::Checker;
-use irgen::IrEmitter;
+use irgen::{emitters::module::IrModuleEmitter, IrEmitter};
 use lexer::scanner::Scanner;
 use lirgen::emitters::module::LirModuleEmitter;
 use parser::Parser;
@@ -19,8 +19,8 @@ fn main() {
 
     println!("parsed tree:\n{module:?}");
 
-    let emitter = IrEmitter::new(module);
-    let ir = unsafe { (&emitter as *const IrEmitter).as_ref().unwrap() }.emit_llvm_ir();
+    let emitter = IrEmitter::new();
+    let ir = emitter.run(module);
 
     println!("\n>>> IR >>>\n");
 
