@@ -19,6 +19,7 @@ pub enum Type {
     },
     Unit,
     NoReturn,
+    Ptr(Box<Type>),
 }
 
 impl TryFrom<&str> for Type {
