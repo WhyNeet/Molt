@@ -132,6 +132,11 @@ impl<'a> IrFunctionEmitter<'a> {
                     .context()
                     .i64_type()
                     .fn_type(&fn_parameters, false),
+                Type::Ptr(other) => self
+                    .mod_scope
+                    .context()
+                    .ptr_type(AddressSpace::default())
+                    .fn_type(&fn_parameters, false),
                 Type::Callable {
                     parameters,
                     return_type,
