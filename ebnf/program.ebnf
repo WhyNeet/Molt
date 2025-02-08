@@ -17,6 +17,3 @@ annotation = "@" IDENTIFIER [ "(" [ annotation_data ] ")" ] ;
 annotation_data = IDENTIFIER { "," IDENTIFIER } ;
 
 return_stmt = "return" expression ";" ;
-
-
-type = [ "*" ] IDENTIFIER ;

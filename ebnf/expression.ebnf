@@ -7,7 +7,7 @@ comparison = shift { ( ">" | ">=" | "<" | "<=" ) shift } ;
 shift = term { ( "<<" | ">>" ) term } ;
 term = factor { ( "+" | "-" ) factor } ;
 factor = cast { ( "*" | "/" ) cast } ;
-cast = unary { "as" IDENTIFIER } ;
+cast = unary { "as" type } ;
 unary = ( "!" | "-" ) unary | member_access ;
 fn_call = member_access { "(" [ arguments ] ")" } ;
 member_access = primary { "." IDENTIFIER } ;
@@ -18,3 +18,5 @@ arguments = expression { "," expression } ;
 break = "break" ;
 continue = "continue" ;
 loop = "loop" block ;
+
+type = [ "*" ] IDENTIFIER ;
