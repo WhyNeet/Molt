@@ -39,4 +39,5 @@ pub enum StaticExpression {
     Literal(Rc<Literal>),
     Identifier(u64),
     FnIdentifier(String),
+    Ptr(Rc<StaticExpression>),
 }
