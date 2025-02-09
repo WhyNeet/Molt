@@ -292,7 +292,11 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Expression {
-        self.assignment()
+        if self.matches(TokenKind::And).is_some() {
+            Expression::Ptr(Rc::new(self.assignment()))
+        } else {
+            self.assignment()
+        }
     }
 
     fn assignment(&mut self) -> Expression {
