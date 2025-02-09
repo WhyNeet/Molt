@@ -4,6 +4,7 @@ use common::{Literal, Number, Type};
 use inkwell::{
     types::{BasicType, BasicTypeEnum},
     values::{BasicMetadataValueEnum, BasicValue, BasicValueEnum},
+    AddressSpace,
 };
 use lir::{
     expression::{Expression, StaticExpression},
@@ -368,6 +369,17 @@ impl<'a> IrExpressionEmitter<'a> {
                     }),
                     Literal::Unit => None,
                 }
+            }
+            StaticExpression::Ptr(expr) => {
+                let cx = self.mod_scope.context();
+                Some((
+                    cx.ptr_type(AddressSpace::default()).as_basic_type_enum(),
+                    self.emit_static_expression(expr)
+                        .unwrap()
+                        .1
+                        .into_pointer_value()
+                        .as_basic_value_enum(),
+                ))
             }
             StaticExpression::FnIdentifier(ident) => {
                 panic!("{ident}")
