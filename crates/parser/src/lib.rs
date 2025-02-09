@@ -249,14 +249,7 @@ impl Parser {
             .to_string();
 
         let ty = if self.matches(TokenKind::Colon).is_some() {
-            let is_ptr = self.matches(TokenKind::Star).is_some();
-
-            self.matches(TokenKind::Ident(String::new()))
-                .expect("expected type.")
-                .as_ident()
-                .map(Type::try_from)
-                .map(|ty| ty.unwrap())
-                .map(|ty| if is_ptr { Type::Ptr(Box::new(ty)) } else { ty })
+            Some(self.molt_type().expect("expected type."))
         } else {
             None
         };
@@ -276,6 +269,17 @@ impl Parser {
             expr: Rc::new(expression),
             ty,
         }
+    }
+
+    fn molt_type(&mut self) -> Option<Type> {
+        let is_ptr = self.matches(TokenKind::Star).is_some();
+
+        self.matches(TokenKind::Ident(String::new()))
+            .expect("expected type.")
+            .as_ident()
+            .map(Type::try_from)
+            .map(|ty| ty.unwrap())
+            .map(|ty| if is_ptr { Type::Ptr(Box::new(ty)) } else { ty })
     }
 
     fn expr_stmt(&mut self) -> Statement {
@@ -430,15 +434,7 @@ impl Parser {
             .matches_exact(TokenKind::Keyword(Keyword::As))
             .is_some()
         {
-            let type_ident = self
-                .matches(TokenKind::Ident(String::new()))
-                .expect("expected type after `as`");
-            let type_ident = match type_ident.kind {
-                TokenKind::Ident(ref ident) => ident,
-                _ => unreachable!(),
-            };
-
-            let ty = Type::try_from(type_ident.as_str()).unwrap();
+            let ty = self.molt_type().expect("expected type.");
 
             expr = Expression::Cast {
                 expr: Rc::new(expr),
