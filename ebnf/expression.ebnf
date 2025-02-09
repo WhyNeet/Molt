@@ -1,4 +1,4 @@
-expression = assignment ;
+expression = [ "&" ] assignment ;
 assignment = IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "^=" ) logic_or | logic_or ;
 logic_or = logic_and { "||" logic_and } ;
 logic_and = equality { "&&" equality } ;
@@ -11,7 +11,7 @@ cast = unary { "as" type } ;
 unary = ( "!" | "-" ) unary | member_access ;
 fn_call = member_access { "(" [ arguments ] ")" } ;
 member_access = primary { "." IDENTIFIER } ;
-primary = STRING | IDENTIFIER | NUMBER | "true" | "false" | "(" expression ")" | "(" ")" | block | conditional | break | continue | loop ;
+primary = STRING | IDENTIFIER | NUMBER | "true" | "false" | "(" expression ")" | "(" ")" | block | conditional | break | continue | loop | ptr ;
 block = "{" expression "}" ;
 conditional = "if" expression block { "else" "if" expression block } [ "else" block ] ;
 arguments = expression { "," expression } ;
