@@ -47,6 +47,9 @@ pub enum ExpressionKind {
         expr: Rc<Expression>,
         ty: Type,
     },
+    Ptr {
+        expr: Rc<Expression>,
+    },
     Loop(Vec<Rc<Statement>>),
     Continue,
     Break,
