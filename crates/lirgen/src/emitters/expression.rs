@@ -106,6 +106,18 @@ impl LirExpressionEmitter {
                     variable.store(Rc::new(expr));
                 }
             }
+            ExpressionKind::Ptr { expr: ptr_expr } => {
+                let ssa_id = self.emit_into_variable(ptr_expr, None);
+
+                if let Some(variable) = store_in {
+                    variable.store(Rc::new(Expression::Static(
+                        Rc::new(StaticExpression::Ptr(Rc::new(
+                            StaticExpression::Identifier(ssa_id),
+                        ))),
+                        expr.ty.clone(),
+                    )));
+                }
+            }
             ExpressionKind::Block(stmts) => {
                 self.lower_block(stmts, store_in);
             }
