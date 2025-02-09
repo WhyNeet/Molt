@@ -195,3 +195,24 @@ fn cast_works() {
         }
     );
 }
+
+#[test]
+fn cast_to_ptr_works() {
+    let input = r#"1 as *u64"#;
+    let tokens = Scanner::tokenize(input).collect();
+
+    let tree = Parser::new(tokens).parse();
+
+    assert_eq!(
+        tree[0],
+        Statement::Expression {
+            expr: Rc::new(Expression::Cast {
+                expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                    Number::Int32(1)
+                )))),
+                ty: Type::Ptr(Box::new(Type::UInt64))
+            }),
+            end_semi: false
+        }
+    );
+}
