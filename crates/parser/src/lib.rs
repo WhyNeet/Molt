@@ -226,16 +226,7 @@ impl Parser {
             panic!("expected `:`.");
         }
 
-        let type_ident = self
-            .matches(TokenKind::Ident(String::new()))
-            .expect("expected identifier.");
-
-        let type_ident = match &type_ident.kind {
-            TokenKind::Ident(ident) => ident.to_string(),
-            _ => panic!("expected identifier."),
-        };
-
-        let type_ident = Type::try_from(type_ident.as_str()).unwrap();
+        let type_ident = self.molt_type().expect("expected type.");
 
         (identifier, type_ident)
     }
@@ -292,11 +283,7 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Expression {
-        if self.matches(TokenKind::And).is_some() {
-            Expression::Ptr(Rc::new(self.assignment()))
-        } else {
-            self.assignment()
-        }
+        self.assignment()
     }
 
     fn assignment(&mut self) -> Expression {
@@ -458,6 +445,16 @@ impl Parser {
         } else if self.matches(TokenKind::Minus).is_some() {
             Expression::Unary {
                 operator: Operator::Neg,
+                expr: Rc::new(self.unary()),
+            }
+        } else if self.matches(TokenKind::And).is_some() {
+            Expression::Unary {
+                operator: Operator::Ref,
+                expr: Rc::new(self.unary()),
+            }
+        } else if self.matches(TokenKind::Star).is_some() {
+            Expression::Unary {
+                operator: Operator::Deref,
                 expr: Rc::new(self.unary()),
             }
         } else {
