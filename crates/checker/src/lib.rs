@@ -261,19 +261,30 @@ impl Checker {
                 expr: Rc::new(ExpressionKind::Literal(Rc::clone(literal))),
             },
             Expression::Ptr(sub_expr) => {
-                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone(), exact);
-
+                let checked = self.expression(
+                    Rc::clone(sub_expr),
+                    if let Some(ref expect_type) = expect_type {
+                        match expect_type {
+                            Type::Ptr(ty) => Some(ty.as_ref().clone()),
+                            other => Some(other.clone()),
+                        }
+                    } else {
+                        None
+                    },
+                    exact,
+                );
+                let expr_type = Type::Ptr(Box::new(checked.ty.clone()));
                 if let Some(expect_type) = expect_type {
-                    if !type_cmp(&checked.ty, &expect_type, exact) {
+                    if !type_cmp(&expr_type, &expect_type, exact) {
                         panic!(
                             "[ptr expression] expected type mismatch: `{:?}`, expected `{:?}`",
-                            checked.ty, expect_type
+                            expr_type, expect_type
                         )
                     }
                 }
 
                 CheckedExpression {
-                    ty: Type::Ptr(Box::new(checked.ty.clone())),
+                    ty: expr_type,
                     effects: checked.effects.clone(),
                     expr: Rc::new(ExpressionKind::Ptr {
                         expr: Rc::new(checked),
