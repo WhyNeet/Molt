@@ -69,6 +69,8 @@ impl LirFunctionEmitter {
         no_mangle: bool,
     ) -> Statement {
         if block.is_none() {
+            self.mod_scope.define_exact(name.clone());
+
             return Statement::ExternalFunctionDeclaration {
                 name,
                 return_type,

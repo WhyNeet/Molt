@@ -1,4 +1,8 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    rc::Rc,
+};
 
 use lir::{module::LirModule, statement::Statement};
 use tcast::{
@@ -11,6 +15,7 @@ use super::function::LirFunctionEmitter;
 #[derive(Debug, Default)]
 pub struct LirModuleEmitterScope {
     mapping: RefCell<HashMap<String, u64>>,
+    exact: RefCell<HashSet<String>>,
 }
 
 impl LirModuleEmitterScope {
@@ -22,8 +27,18 @@ impl LirModuleEmitterScope {
         id
     }
 
-    pub fn get(&self, name: &str) -> Option<u64> {
-        self.mapping.borrow().get(name).map(|n| *n)
+    pub fn define_exact(&self, name: String) {
+        self.exact.borrow_mut().insert(name);
+    }
+
+    pub fn get(&self, name: &str) -> Option<String> {
+        if let Some(name) = self.exact.borrow().get(name) {
+            Some(name.to_string())
+        } else if let Some(id) = self.mapping.borrow().get(name).map(|n| *n) {
+            Some(id.to_string())
+        } else {
+            None
+        }
     }
 }
 
