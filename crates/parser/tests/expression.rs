@@ -218,7 +218,7 @@ fn cast_to_ptr_works() {
 }
 
 #[test]
-fn ptr_expression_works() {
+fn ref_expression_works() {
     let input = r#"&(1 + 2)"#;
     let tokens = Scanner::tokenize(input).collect();
 
@@ -227,8 +227,8 @@ fn ptr_expression_works() {
     assert_eq!(
         tree[0],
         Statement::Expression {
-            expr: Rc::new(Expression::Ptr(Rc::new(Expression::Grouping(Rc::new(
-                Expression::Binary {
+            expr: Rc::new(Expression::Unary {
+                expr: Rc::new(Expression::Grouping(Rc::new(Expression::Binary {
                     left: Rc::new(Expression::Literal(Rc::new(Literal::Number(
                         Number::Int32(1)
                     )))),
@@ -236,8 +236,9 @@ fn ptr_expression_works() {
                     right: Rc::new(Expression::Literal(Rc::new(Literal::Number(
                         Number::Int32(2)
                     ))))
-                }
-            ))))),
+                }))),
+                operator: Operator::Ref
+            }),
             end_semi: false
         }
     );
