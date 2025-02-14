@@ -1,11 +1,14 @@
 [workspace]
 resolver = "2"
 members = [
-  "crates/ast",
-  "crates/lexer",
-  "crates/molt",
-  "crates/parser",
-  "crates/tcast",
-  "crates/checker",
-  "crates/lir", "crates/common", "crates/lirgen", "crates/irgen",
+    "crates/ast",
+    "crates/lexer",
+    "crates/molt",
+    "crates/parser",
+    "crates/tcast",
+    "crates/checker",
+    "crates/lir",
+    "crates/common",
+    "crates/lirgen",
+    "crates/irgen",
 ]
