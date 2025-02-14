@@ -166,7 +166,7 @@ impl LirExpressionEmitter {
                 let lir_expr = Expression::Unary {
                     operator: UnaryOperator::from(operator),
                     expr: StaticExpression::Identifier(ssa_name),
-                    ty: expr.ty.clone(),
+                    ty: sub_expr.ty.clone(),
                 };
 
                 if let Some(variable) = store_in {
