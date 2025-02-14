@@ -260,52 +260,85 @@ impl Checker {
                 ty: literal.get_type(),
                 expr: Rc::new(ExpressionKind::Literal(Rc::clone(literal))),
             },
-            Expression::Ptr(sub_expr) => {
-                let checked = self.expression(
-                    Rc::clone(sub_expr),
-                    if let Some(ref expect_type) = expect_type {
-                        match expect_type {
-                            Type::Ptr(ty) => Some(ty.as_ref().clone()),
-                            other => Some(other.clone()),
-                        }
-                    } else {
-                        None
-                    },
-                    exact,
-                );
-                let expr_type = Type::Ptr(Box::new(checked.ty.clone()));
-                if let Some(expect_type) = expect_type {
-                    if !type_cmp(&expr_type, &expect_type, exact) {
-                        panic!(
-                            "[ptr expression] expected type mismatch: `{:?}`, expected `{:?}`",
-                            expr_type, expect_type
-                        )
-                    }
-                }
+            // Expression::Ptr(sub_expr) => {
+            //     let checked = self.expression(
+            //         Rc::clone(sub_expr),
+            //         if let Some(ref expect_type) = expect_type {
+            //             match expect_type {
+            //                 Type::Ptr(ty) => Some(ty.as_ref().clone()),
+            //                 other => Some(other.clone()),
+            //             }
+            //         } else {
+            //             None
+            //         },
+            //         exact,
+            //     );
+            //     let expr_type = Type::Ptr(Box::new(checked.ty.clone()));
+            //     if let Some(expect_type) = expect_type {
+            //         if !type_cmp(&expr_type, &expect_type, exact) {
+            //             panic!(
+            //                 "[ptr expression] expected type mismatch: `{:?}`, expected `{:?}`",
+            //                 expr_type, expect_type
+            //             )
+            //         }
+            //     }
 
-                CheckedExpression {
-                    ty: expr_type,
-                    effects: checked.effects.clone(),
-                    expr: Rc::new(ExpressionKind::Ptr {
-                        expr: Rc::new(checked),
-                    }),
-                }
-            }
+            //     CheckedExpression {
+            //         ty: expr_type,
+            //         effects: checked.effects.clone(),
+            //         expr: Rc::new(ExpressionKind::Ptr {
+            //             expr: Rc::new(checked),
+            //         }),
+            //     }
+            // }
             Expression::Unary {
                 expr: sub_expr,
                 operator,
-            } => {
-                match operator {
-                    Operator::Neg | Operator::Not => (),
-                    other => panic!("`{other:?}` is not a unary operator"),
-                }
-
-                let checked = self.expression(Rc::clone(sub_expr), expect_type.clone(), exact);
+            } if *operator == Operator::Neg || *operator == Operator::Not => {
+                let checked = self.expression(Rc::clone(sub_expr), None, exact);
                 if let Some(expect_type) = expect_type {
                     if !type_cmp(&checked.ty, &expect_type, exact) {
                         panic!(
                             "[unary expression] expected type mismatch: `{:?}`, expected `{:?}`",
                             checked.ty, expect_type
+                        )
+                    }
+                }
+
+                if !operator.accepts(&checked.ty) {
+                    panic!(
+                        "[unary expression] operand type mismatch: `{:?}`.",
+                        checked.ty,
+                    )
+                }
+
+                CheckedExpression {
+                    effects: checked.effects.clone(),
+                    ty: operator.produces(checked.ty.clone()),
+                    expr: Rc::new(ExpressionKind::Unary {
+                        operator: *operator,
+                        expr: Rc::new(checked),
+                    }),
+                }
+            }
+            Expression::Unary {
+                operator,
+                expr: sub_expr,
+            } => {
+                match operator {
+                    Operator::Ref => (),
+                    Operator::Deref => todo!(),
+                    other => panic!("`{other:?}` is not a unary operator"),
+                };
+
+                let checked = self.expression(Rc::clone(sub_expr), None, exact);
+                if let Some(expect_type) = expect_type {
+                    let checked_ty = Type::Ptr(Box::new(checked.ty.clone()));
+
+                    if !type_cmp(&checked_ty, &expect_type, exact) {
+                        panic!(
+                            "[unary expression] expected type mismatch: `{:?}`, expected `{:?}`",
+                            checked_ty, expect_type
                         )
                     }
                 }
