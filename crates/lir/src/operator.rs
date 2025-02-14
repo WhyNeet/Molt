@@ -46,6 +46,8 @@ impl From<&Operator> for BinaryOperator {
 pub enum UnaryOperator {
     Neg,
     Not,
+    Ref,
+    Deref,
 }
 
 impl From<&Operator> for UnaryOperator {
@@ -53,6 +55,8 @@ impl From<&Operator> for UnaryOperator {
         match value {
             Operator::Neg => Self::Neg,
             Operator::Not => Self::Not,
+            Operator::Ref => Self::Ref,
+            Operator::Deref => Self::Deref,
             _ => unreachable!(),
         }
     }
