@@ -22,6 +22,8 @@ pub enum Operator {
     Ge,
     Lt,
     Le,
+    Ref,
+    Deref,
 }
 
 impl Operator {
@@ -30,6 +32,11 @@ impl Operator {
             Self::Eq | Self::Ge | Self::Gt | Self::Le | Self::Lt | Self::Ne | Self::Not => {
                 Type::Bool
             }
+            Self::Ref => Type::Ptr(Box::new(operand_type)),
+            Self::Deref => match operand_type {
+                Type::Ptr(subtype) => subtype.as_ref().clone(),
+                _ => unreachable!(),
+            },
             _ => operand_type,
         }
     }
@@ -43,6 +50,7 @@ impl Operator {
             Operator::Mul | Operator::Div => operand_type.is_numeric(),
             Operator::And | Operator::Or | Operator::Not => operand_type == &Type::Bool,
             Operator::BitXor | Operator::Shl | Operator::Shr => operand_type.is_numeric(),
+            Operator::Ref | Operator::Deref => true,
         }
     }
 }
@@ -67,6 +75,7 @@ impl TryFrom<&Token> for Operator {
             TokenKind::Ne => Ok(Self::Ne),
             TokenKind::GtGt => Ok(Self::Shr),
             TokenKind::LtLt => Ok(Self::Shl),
+            TokenKind::And => Ok(Self::Ref),
             ref other => Err(format!("unknown operator: `{other:?}`")),
         }
     }

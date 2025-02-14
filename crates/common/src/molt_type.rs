@@ -68,6 +68,13 @@ impl Type {
         }
     }
 
+    pub fn is_ptr(&self) -> bool {
+        match self {
+            Type::Ptr(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn can_cast(&self, other: &Type) -> bool {
         if self == other {
             return true;
@@ -80,6 +87,11 @@ impl Type {
                 _ => false,
             },
             Type::Bool => other.is_numeric(),
+            Type::Ptr(ty1) => match other {
+                Type::Ptr(ty2) if **ty2 == Type::Int8 => true,
+                Type::Ptr(ty2) => ty1 == ty2,
+                _ => false,
+            },
             _ => other.is_numeric(),
         }
     }
