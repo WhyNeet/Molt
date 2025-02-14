@@ -185,55 +185,73 @@ impl<'a> IrExpressionEmitter<'a> {
                 };
 
                 Some((
-                    util::into_primitive_context_type(ty, &self.mod_scope.context()),
+                    util::into_primitive_context_type(ty, &self.mod_scope.context()).unwrap(),
                     res,
                 ))
             }
             Expression::Unary { operator, expr, ty } => {
                 let expr = self.emit_static_expression(expr).unwrap();
 
-                let is_int = match ty {
-                    Type::Float32 | Type::Float64 => false,
-                    _ => true,
-                };
+                if ty.is_numeric() {
+                    let is_int = match ty {
+                        Type::Float32 | Type::Float64 => false,
+                        _ => true,
+                    };
+                    let res = if is_int {
+                        let ty = util::into_primitive_context_type(ty, &self.mod_scope.context())
+                            .unwrap();
+                        let value = expr.1.into_int_value();
+                        let name = &store_in.unwrap().to_string();
 
-                let res = if is_int {
-                    let value = expr.1.into_int_value();
-                    let name = &store_in.unwrap().to_string();
-
-                    match operator {
-                        UnaryOperator::Neg => self
-                            .mod_scope
-                            .builder()
-                            .build_int_neg(value, name)
+                        match operator {
+                            UnaryOperator::Neg => self
+                                .mod_scope
+                                .builder()
+                                .build_int_neg(value, name)
+                                .unwrap()
+                                .as_basic_value_enum(),
+                            UnaryOperator::Not => self
+                                .mod_scope
+                                .builder()
+                                .build_not(value, name)
+                                .unwrap()
+                                .as_basic_value_enum(),
+                            UnaryOperator::Ref => unsafe {
+                                self.mod_scope.builder().build_gep(
+                                    value.get_type(),
+                                    value.const_to_pointer(ty.ptr_type(AddressSpace::default())),
+                                    &[],
+                                    name,
+                                )
+                            }
                             .unwrap()
                             .as_basic_value_enum(),
-                        UnaryOperator::Not => self
-                            .mod_scope
-                            .builder()
-                            .build_not(value, name)
-                            .unwrap()
-                            .as_basic_value_enum(),
-                    }
+                            UnaryOperator::Deref => todo!(),
+                        }
+                    } else {
+                        let value = expr.1.into_float_value();
+                        let name = &store_in.unwrap().to_string();
+
+                        match operator {
+                            UnaryOperator::Neg => self
+                                .mod_scope
+                                .builder()
+                                .build_float_neg(value, name)
+                                .unwrap()
+                                .as_basic_value_enum(),
+                            UnaryOperator::Ref => todo!(),
+                            UnaryOperator::Deref => todo!(),
+                            UnaryOperator::Not => todo!(),
+                        }
+                    };
+
+                    Some((
+                        util::into_primitive_context_type(ty, &self.mod_scope.context()).unwrap(),
+                        res,
+                    ))
                 } else {
-                    let value = expr.1.into_float_value();
-                    let name = &store_in.unwrap().to_string();
-
-                    match operator {
-                        UnaryOperator::Neg => self
-                            .mod_scope
-                            .builder()
-                            .build_float_neg(value, name)
-                            .unwrap()
-                            .as_basic_value_enum(),
-                        UnaryOperator::Not => todo!(),
-                    }
-                };
-
-                Some((
-                    util::into_primitive_context_type(ty, &self.mod_scope.context()),
-                    res,
-                ))
+                    todo!()
+                }
             }
             Expression::Call {
                 expr,
@@ -247,6 +265,8 @@ impl<'a> IrExpressionEmitter<'a> {
                     },
                     _ => unreachable!(),
                 };
+
+                println!("IDENT FN: {name}");
 
                 let func = self.mod_scope.get_function(name).unwrap();
 
@@ -269,7 +289,7 @@ impl<'a> IrExpressionEmitter<'a> {
                     .unwrap();
 
                 Some((
-                    util::into_primitive_context_type(ty, &self.mod_scope.context()),
+                    util::into_primitive_context_type(ty, &self.mod_scope.context()).unwrap(),
                     value.try_as_basic_value().left().unwrap(),
                 ))
             }
@@ -377,7 +397,6 @@ impl<'a> IrExpressionEmitter<'a> {
                     self.emit_static_expression(expr)
                         .unwrap()
                         .1
-                        .into_pointer_value()
                         .as_basic_value_enum(),
                 ))
             }

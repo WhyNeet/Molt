@@ -76,6 +76,15 @@ impl<'a> IrModuleEmitter<'a> {
                     return_type,
                     parameters,
                 } => fn_emitter.emit(name.to_string(), parameters, blocks, return_type),
+                Statement::ExternalFunctionDeclaration {
+                    name,
+                    return_type,
+                    parameters,
+                } => fn_emitter.emit_external(
+                    name.to_string(),
+                    parameters.iter().map(|(_, ty)| ty).collect(),
+                    return_type,
+                ),
                 _ => todo!(),
             }
         }

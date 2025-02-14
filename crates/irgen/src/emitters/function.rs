@@ -2,7 +2,9 @@ use std::{borrow::Borrow, cell::RefCell, collections::HashMap, f32::consts::PI, 
 
 use common::Type;
 use inkwell::{
+    attributes::{Attribute, AttributeLoc},
     basic_block::BasicBlock,
+    module::Linkage,
     types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum},
     values::{BasicValueEnum, FunctionValue},
     AddressSpace,
@@ -60,6 +62,101 @@ impl<'a> IrFunctionEmitter<'a> {
 }
 
 impl<'a> IrFunctionEmitter<'a> {
+    pub fn emit_external(&self, name: String, parameters: Vec<&Type>, return_type: &Type) {
+        let cx = self.mod_scope.context();
+
+        let parameters = parameters
+            .iter()
+            .map(|ty| {
+                if ty.is_ptr() {
+                    util::into_ptr_context_type(ty, cx)
+                } else {
+                    util::into_primitive_context_type(ty, cx)
+                }
+                .unwrap()
+            })
+            .collect::<Vec<_>>();
+
+        let fn_parameters = parameters
+            .iter()
+            .map(|ty| BasicMetadataTypeEnum::from(*ty))
+            .collect::<Vec<_>>();
+
+        let function = self.mod_scope.module().add_function(
+            &name,
+            match return_type {
+                Type::Bool => self
+                    .mod_scope
+                    .context()
+                    .bool_type()
+                    .fn_type(&fn_parameters, false),
+                Type::Unit => self
+                    .mod_scope
+                    .context()
+                    .void_type()
+                    .fn_type(&fn_parameters, false),
+                Type::Char => self
+                    .mod_scope
+                    .context()
+                    .i8_type()
+                    .fn_type(&fn_parameters, false),
+                Type::Str => self
+                    .mod_scope
+                    .context()
+                    .ptr_type(AddressSpace::default())
+                    .fn_type(&fn_parameters, false),
+                Type::Float32 => self
+                    .mod_scope
+                    .context()
+                    .f32_type()
+                    .fn_type(&fn_parameters, false),
+                Type::Float64 => self
+                    .mod_scope
+                    .context()
+                    .f64_type()
+                    .fn_type(&fn_parameters, false),
+                Type::UInt8 | Type::Int8 => self
+                    .mod_scope
+                    .context()
+                    .i8_type()
+                    .fn_type(&fn_parameters, false),
+                Type::UInt16 | Type::Int16 => self
+                    .mod_scope
+                    .context()
+                    .i16_type()
+                    .fn_type(&fn_parameters, false),
+                Type::UInt32 | Type::Int32 => self
+                    .mod_scope
+                    .context()
+                    .i32_type()
+                    .fn_type(&fn_parameters, false),
+                Type::UInt64 | Type::Int64 => self
+                    .mod_scope
+                    .context()
+                    .i64_type()
+                    .fn_type(&fn_parameters, false),
+                Type::Ptr(other) => self
+                    .mod_scope
+                    .context()
+                    .ptr_type(AddressSpace::default())
+                    .fn_type(&fn_parameters, false),
+                Type::Callable {
+                    parameters,
+                    return_type,
+                } => todo!(),
+                Type::NoReturn => unreachable!(),
+            },
+            Some(Linkage::External),
+        );
+
+        function.add_attribute(
+            AttributeLoc::Function,
+            cx.create_enum_attribute(Attribute::get_named_enum_kind_id("nounwind"), 0),
+        );
+
+        self.mod_scope.define_function(name, function);
+    }
+
     pub fn emit(
         &self,
         name: String,
@@ -70,7 +167,7 @@ impl<'a> IrFunctionEmitter<'a> {
         let parameters = parameters
             .iter()
             .map(|(_id, ty)| {
-                util::into_primitive_context_type(ty, self.mod_scope.context()).as_basic_type_enum()
+                util::into_primitive_context_type(ty, self.mod_scope.context()).unwrap()
             })
             .collect::<Vec<_>>();
 
