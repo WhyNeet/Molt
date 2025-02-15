@@ -89,6 +89,7 @@ impl Type {
             Type::Bool => other.is_numeric(),
             Type::Ptr(ty1) => match other {
                 Type::Ptr(ty2) if **ty2 == Type::Int8 => true,
+                Type::Ptr(_) if **ty1 == Type::Int8 => true,
                 Type::Ptr(ty2) => ty1 == ty2,
                 _ => false,
             },
