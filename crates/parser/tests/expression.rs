@@ -243,24 +243,3 @@ fn ref_expression_works() {
         }
     );
 }
-
-#[test]
-fn intrinsics_work() {
-    let input = r#"#i8_ptr(1)"#;
-    let tokens = Scanner::tokenize(input).collect();
-
-    let tree = Parser::new(tokens).parse();
-
-    assert_eq!(
-        tree[0],
-        Statement::Expression {
-            expr: Rc::new(Expression::CompilerIntrinsic {
-                name: "i8_ptr".to_string(),
-                arguments: vec![Rc::new(Expression::Literal(Rc::new(Literal::Number(
-                    Number::Int32(1)
-                ))))]
-            }),
-            end_semi: false
-        }
-    );
-}

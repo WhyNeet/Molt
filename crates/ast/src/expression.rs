@@ -43,9 +43,4 @@ pub enum Expression {
     Loop(Vec<Rc<Statement>>),
     Continue,
     Break,
-
-    CompilerIntrinsic {
-        name: String,
-        arguments: Vec<Rc<Expression>>,
-    },
 }

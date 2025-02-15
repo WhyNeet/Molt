@@ -283,31 +283,7 @@ impl Parser {
     }
 
     fn expression(&mut self) -> Expression {
-        self.compiler_intrinsic()
-    }
-
-    fn compiler_intrinsic(&mut self) -> Expression {
-        if self.matches(TokenKind::Pound).is_some() {
-            let intrinsic_name = self
-                .matches(TokenKind::Ident(String::new()))
-                .expect("expected intrinsic identifier.")
-                .as_ident()
-                .unwrap()
-                .to_string();
-
-            self.matches(TokenKind::OpenParen).expect("expected `(`");
-
-            let arguments = self.arguments();
-
-            self.matches(TokenKind::CloseParen).expect("expected `)`");
-
-            Expression::CompilerIntrinsic {
-                name: intrinsic_name,
-                arguments,
-            }
-        } else {
-            self.assignment()
-        }
+        self.assignment()
     }
 
     fn assignment(&mut self) -> Expression {

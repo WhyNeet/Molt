@@ -1,5 +1,4 @@
-expression = compiler_intrinsic | assignment ;
-compiler_intrinsic = "#" IDENTIFIER "(" { assignment } ")" ;
+expression = assignment ;
 assignment = IDENTIFIER ( "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=" | "^=" ) logic_or | logic_or ;
 logic_or = logic_and { "||" logic_and } ;
 logic_and = equality { "&&" equality } ;
