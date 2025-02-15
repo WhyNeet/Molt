@@ -180,7 +180,26 @@ impl<'a> IrExpressionEmitter<'a> {
                             .build_float_compare(inkwell::FloatPredicate::OLE, lhs, rhs, name)
                             .unwrap()
                             .as_basic_value_enum(),
-                        _ => todo!(),
+                        BinaryOperator::And => builder
+                            .build_and(lhs, rhs, name)
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        BinaryOperator::Or => builder
+                            .build_or(lhs, rhs, name)
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        BinaryOperator::BitXor => builder
+                            .build_xor(lhs, rhs, name)
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        BinaryOperator::Shl => builder
+                            .build_left_shift(lhs, rhs, name)
+                            .unwrap()
+                            .as_basic_value_enum(),
+                        BinaryOperator::Shr => builder
+                            .build_right_shift(lhs, rhs, true, name)
+                            .unwrap()
+                            .as_basic_value_enum(),
                     }
                 };
 
