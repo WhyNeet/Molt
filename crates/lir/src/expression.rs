@@ -41,3 +41,33 @@ pub enum StaticExpression {
     FnIdentifier(String),
     Ptr(Rc<StaticExpression>),
 }
+
+impl StaticExpression {
+    pub fn as_literal(&self) -> Option<&Literal> {
+        match self {
+            Self::Literal(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_ident(&self) -> Option<&u64> {
+        match self {
+            Self::Identifier(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_fn_ident(&self) -> Option<&str> {
+        match self {
+            Self::FnIdentifier(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_ptr(&self) -> Option<&StaticExpression> {
+        match self {
+            Self::Ptr(value) => Some(value),
+            _ => None,
+        }
+    }
+}
