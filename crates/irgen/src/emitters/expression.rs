@@ -180,26 +180,7 @@ impl<'a> IrExpressionEmitter<'a> {
                             .build_float_compare(inkwell::FloatPredicate::OLE, lhs, rhs, name)
                             .unwrap()
                             .as_basic_value_enum(),
-                        BinaryOperator::And => builder
-                            .build_and(lhs, rhs, name)
-                            .unwrap()
-                            .as_basic_value_enum(),
-                        BinaryOperator::Or => builder
-                            .build_or(lhs, rhs, name)
-                            .unwrap()
-                            .as_basic_value_enum(),
-                        BinaryOperator::BitXor => builder
-                            .build_xor(lhs, rhs, name)
-                            .unwrap()
-                            .as_basic_value_enum(),
-                        BinaryOperator::Shl => builder
-                            .build_left_shift(lhs, rhs, name)
-                            .unwrap()
-                            .as_basic_value_enum(),
-                        BinaryOperator::Shr => builder
-                            .build_right_shift(lhs, rhs, true, name)
-                            .unwrap()
-                            .as_basic_value_enum(),
+                        _ => unimplemented!(),
                     }
                 };
 
@@ -210,7 +191,7 @@ impl<'a> IrExpressionEmitter<'a> {
             }
             Expression::Unary { operator, expr, ty } => {
                 let expr = self.emit_static_expression(expr).unwrap();
-
+                let name = &store_in.unwrap().to_string();
                 if ty.is_numeric() {
                     let is_int = match ty {
                         Type::Float32 | Type::Float64 => false,
@@ -220,7 +201,6 @@ impl<'a> IrExpressionEmitter<'a> {
                         let ty = util::into_primitive_context_type(ty, &self.mod_scope.context())
                             .unwrap();
                         let value = expr.1.into_int_value();
-                        let name = &store_in.unwrap().to_string();
 
                         match operator {
                             UnaryOperator::Neg => self
@@ -269,7 +249,21 @@ impl<'a> IrExpressionEmitter<'a> {
                         res,
                     ))
                 } else {
-                    todo!()
+                    let res = match operator {
+                        UnaryOperator::Ref => unsafe {
+                            self.mod_scope.builder().build_gep(
+                                expr.1.get_type(),
+                                expr.1.into_pointer_value(),
+                                &[],
+                                name,
+                            )
+                        }
+                        .unwrap()
+                        .as_basic_value_enum(),
+                        _ => todo!(),
+                    };
+
+                    Some((expr.0, res))
                 }
             }
             Expression::Call {
@@ -284,8 +278,6 @@ impl<'a> IrExpressionEmitter<'a> {
                     },
                     _ => unreachable!(),
                 };
-
-                println!("IDENT FN: {name}");
 
                 let func = self.mod_scope.get_function(name).unwrap();
 
@@ -312,7 +304,29 @@ impl<'a> IrExpressionEmitter<'a> {
                     value.try_as_basic_value().left().unwrap(),
                 ))
             }
-            _ => todo!(),
+            Expression::Cast { expr, ty } => {
+                let expr = self.emit_static_expression(expr).unwrap();
+
+                let cx = self.mod_scope.context();
+
+                match ty {
+                    Type::Ptr(ptr_ty) => {
+                        let ptr_type = util::into_primitive_context_type(ptr_ty, &cx)
+                            .unwrap()
+                            .ptr_type(AddressSpace::default());
+                        Some((
+                            ptr_type.as_basic_type_enum(),
+                            self.mod_scope
+                                .builder()
+                                .build_bit_cast(expr.1, ptr_type, &store_in.unwrap().to_string())
+                                .unwrap()
+                                .as_basic_value_enum(),
+                        ))
+                    }
+                    _ => todo!(),
+                }
+            }
+            other => todo!("`{other:?}`"),
         }
     }
 
@@ -345,7 +359,10 @@ impl<'a> IrExpressionEmitter<'a> {
                         cx.i8_type()
                             .array_type(value.len() as u32)
                             .as_basic_type_enum(),
-                        cx.const_string(value.as_bytes(), true)
+                        self.mod_scope
+                            .builder()
+                            .build_global_string_ptr(value, "s")
+                            .unwrap()
                             .as_basic_value_enum(),
                     )),
                     Literal::Number(value) => Some(match value {
