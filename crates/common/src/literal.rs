@@ -9,6 +9,36 @@ pub enum Literal {
     Unit,
 }
 
+impl Literal {
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Self::Str(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_number(&self) -> Option<&Number> {
+        match self {
+            Self::Number(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_char(&self) -> Option<&char> {
+        match self {
+            Self::Char(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn as_bool(&self) -> Option<&bool> {
+        match self {
+            Self::Bool(value) => Some(value),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Number {
     UInt8(u8),
