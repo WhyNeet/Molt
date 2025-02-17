@@ -45,7 +45,6 @@ impl LirModuleEmitterScope {
 #[derive(Default)]
 pub struct LirModuleEmitter {
     stmts: RefCell<Vec<Rc<Statement>>>,
-    entrypoint: RefCell<Option<u64>>,
     scope: Rc<LirModuleEmitterScope>,
 }
 
@@ -53,7 +52,6 @@ impl LirModuleEmitter {
     pub fn new() -> Self {
         Self {
             stmts: RefCell::default(),
-            entrypoint: RefCell::default(),
             ..Default::default()
         }
     }
@@ -82,22 +80,8 @@ impl LirModuleEmitter {
                         return_type.clone(),
                         parameters.clone(),
                         is_main,
+                        attributes.contains(&FunctionAttribute::VarArg),
                     );
-
-                    if attributes.contains(&FunctionAttribute::Main) {
-                        // let mut entrypoint = self.entrypoint.borrow_mut();
-                        // if entrypoint.is_some() {
-                        //     panic!("a module cannot have multiple entrypoints.")
-                        // }
-
-                        // *entrypoint = Some(match &func {
-                        //     Statement::FunctionDeclaration { name, .. } => name.to_st,
-                        //     Statement::ExternalFunctionDeclaration { name, .. } => {
-                        //         panic!("external function `{name}` cannot be an entrypoint.")
-                        //     }
-                        //     _ => unreachable!(),
-                        // });
-                    }
 
                     func
                 }

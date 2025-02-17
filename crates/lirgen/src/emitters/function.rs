@@ -67,6 +67,7 @@ impl LirFunctionEmitter {
         return_type: Type,
         parameters: Vec<(String, Type)>,
         no_mangle: bool,
+        is_var_args: bool,
     ) -> Statement {
         if block.is_none() {
             self.mod_scope.define_exact(name.clone());
@@ -75,6 +76,7 @@ impl LirFunctionEmitter {
                 name,
                 return_type,
                 parameters,
+                is_var_args,
             };
         }
 
