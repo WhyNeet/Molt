@@ -1,6 +1,6 @@
-@effect(io) @extern fun printf(s: *i8) -> i32;
+@effect(io) @vararg @extern fun printf(s: *i8) -> i32;
 
 @effect(io) @main fun main() = {
     let s = "hello, world!";
-    let x = printf(&s as *i8);
+    printf(&s as *i8);
 }
