@@ -2,4 +2,5 @@
 pub enum FunctionAttribute {
     Main,
     External,
+    VarArg,
 }
