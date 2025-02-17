@@ -1,0 +1,16 @@
+@effect(io) @extern @vararg fun printf(ptr: *i8) -> i32;
+@effect(io) @extern @vararg fun scanf(ptr: *i8) -> i32;
+@effect(io) @extern fun malloc(size: u64) -> *i8;
+@effect(io) @extern fun free(ptr: *i8);
+
+@effect(io) @main fun main() = {
+    let prompt = "Enter a string: ";
+    printf(&prompt as *i8);
+
+    let input_buffer = malloc(100);
+    scanf(&"%s" as *i8, input_buffer);
+
+    printf(&"You entered: %s" as *i8, input_buffer);
+
+    free(input_buffer);
+}
