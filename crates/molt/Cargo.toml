@@ -10,3 +10,4 @@ checker = { path = "../checker" }
 lirgen = { path = "../lirgen" }
 irgen = { path = "../irgen" }
 artifact = { path = "../artifact" }
+clap = { version = "4.5.29", features = ["derive"] }
