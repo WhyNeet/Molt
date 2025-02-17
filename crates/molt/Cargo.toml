@@ -9,3 +9,4 @@ parser = { path = "../parser" }
 checker = { path = "../checker" }
 lirgen = { path = "../lirgen" }
 irgen = { path = "../irgen" }
+artifact = { path = "../artifact" }

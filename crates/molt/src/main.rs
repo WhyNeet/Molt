@@ -1,7 +1,8 @@
-use std::{fs, path::Path, ptr};
+use std::{fs, path::Path};
 
+use artifact::BuildArtifactGenerator;
 use checker::Checker;
-use irgen::{emitters::module::IrModuleEmitter, FileType, IrEmitter, TargetInitializer};
+use irgen::IrEmitter;
 use lexer::scanner::Scanner;
 use lirgen::emitters::module::LirModuleEmitter;
 use parser::Parser;
@@ -20,17 +21,12 @@ fn main() {
     println!("parsed tree:\n{module:?}");
 
     let emitter = IrEmitter::new();
-    let ir = emitter.run(module);
+    let module = emitter.run(module);
 
-    println!("\n>>> LLVM IR (debug) >>>\n\n");
-    ir.print_to_stderr();
-
-    let target_machine = TargetInitializer::native().init_target_machine();
+    let artifact_builder = BuildArtifactGenerator::default();
 
     let output_path = Path::new("output.o");
-    target_machine
-        .write_to_file(&ir, FileType::Object, output_path)
-        .unwrap();
+    artifact_builder.produce_object_file(&module, output_path);
 
-    println!("\nDONE.");
+    println!("\nCompiled 1 artifact.");
 }

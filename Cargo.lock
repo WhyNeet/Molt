@@ -140,6 +140,7 @@ dependencies = [
 name = "molt"
 version = "0.1.0"
 dependencies = [
+ "artifact",
  "checker",
  "irgen",
  "lexer",
