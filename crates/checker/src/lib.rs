@@ -129,11 +129,6 @@ impl Checker {
             None
         };
 
-        let fn_type = Type::Callable {
-            parameters: parameters.iter().map(|(_, ty)| ty.clone()).collect(),
-            return_type: Box::new(return_type.clone()),
-        };
-
         let mut fn_attrs = vec![];
 
         if let Some(main) = annotations
@@ -159,6 +154,24 @@ impl Checker {
 
             fn_attrs.push(FunctionAttribute::External);
         }
+
+        if let Some(external) = annotations
+            .as_ref()
+            .map(|a| a.iter().find(|a| a.name == "vararg"))
+            .unwrap_or(None)
+        {
+            if external.arguments.len() != 0 {
+                panic!("`@vararg` annotation cannot have arguments.")
+            }
+
+            fn_attrs.push(FunctionAttribute::VarArg);
+        }
+
+        let fn_type = Type::Callable {
+            parameters: parameters.iter().map(|(_, ty)| ty.clone()).collect(),
+            return_type: Box::new(return_type.clone()),
+            var_args: fn_attrs.contains(&FunctionAttribute::VarArg),
+        };
 
         let fn_effects = annotations
             .map(|annotations| annotations.into_iter().find(|a| a.name == "effect"))
@@ -443,6 +456,7 @@ impl Checker {
                     Some(Type::Callable {
                         parameters: vec![],
                         return_type: Box::new(Type::Unit),
+                        var_args: false,
                     }),
                     false,
                 );
@@ -452,10 +466,11 @@ impl Checker {
                     Type::Callable {
                         parameters,
                         return_type,
+                        var_args,
                     } => {
-                        if arguments.len() != parameters.len() {
+                        if arguments.len() < parameters.len() {
                             panic!(
-                                "[call expression] wrong number of arguments: {}, expected {}",
+                                "[call expression] wrong number of arguments: {}, expected at least {}",
                                 arguments.len(),
                                 parameters.len()
                             )
@@ -466,7 +481,11 @@ impl Checker {
                             .map(Rc::clone)
                             .enumerate()
                             .map(|(idx, arg)| {
-                                self.expression(arg, Some(parameters[idx].clone()), true)
+                                self.expression(
+                                    arg,
+                                    parameters.get(idx).map(|param| param.clone()),
+                                    true,
+                                )
                             })
                             .collect::<Vec<CheckedExpression>>();
 
