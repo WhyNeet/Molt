@@ -80,10 +80,12 @@ impl<'a> IrModuleEmitter<'a> {
                     name,
                     return_type,
                     parameters,
+                    is_var_args,
                 } => fn_emitter.emit_external(
                     name.to_string(),
                     parameters.iter().map(|(_, ty)| ty).collect(),
                     return_type,
+                    *is_var_args,
                 ),
                 _ => todo!(),
             }

@@ -37,6 +37,12 @@ impl<'a> IrStatementEmitter<'a> {
 
         match statement.as_ref() {
             Statement::StaticVariableDeclaration { id, expr, ty } => {
+                if *ty == Type::Unit {
+                    // do not unwrap
+                    expr_emitter.emit(Rc::clone(expr), Some(*id));
+                    return;
+                }
+
                 let (ty, value) = expr_emitter.emit(Rc::clone(expr), Some(*id)).unwrap();
 
                 self.fn_scope.define(*id, VariableData::new(ty, value));

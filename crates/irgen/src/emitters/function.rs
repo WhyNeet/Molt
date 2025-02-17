@@ -1,11 +1,11 @@
-use std::{borrow::Borrow, cell::RefCell, collections::HashMap, f32::consts::PI, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use common::Type;
 use inkwell::{
     attributes::{Attribute, AttributeLoc},
     basic_block::BasicBlock,
     module::Linkage,
-    types::{BasicMetadataTypeEnum, BasicType, BasicTypeEnum},
+    types::{BasicMetadataTypeEnum, BasicTypeEnum},
     values::{BasicValueEnum, FunctionValue},
     AddressSpace,
 };
@@ -62,19 +62,18 @@ impl<'a> IrFunctionEmitter<'a> {
 }
 
 impl<'a> IrFunctionEmitter<'a> {
-    pub fn emit_external(&self, name: String, parameters: Vec<&Type>, return_type: &Type) {
+    pub fn emit_external(
+        &self,
+        name: String,
+        parameters: Vec<&Type>,
+        return_type: &Type,
+        is_var_args: bool,
+    ) {
         let cx = self.mod_scope.context();
 
         let parameters = parameters
             .iter()
-            .map(|ty| {
-                if ty.is_ptr() {
-                    util::into_ptr_context_type(ty, cx)
-                } else {
-                    util::into_primitive_context_type(ty, cx)
-                }
-                .unwrap()
-            })
+            .map(|ty| util::into_primitive_context_type(ty, cx).unwrap())
             .collect::<Vec<_>>();
 
         let fn_parameters = parameters
@@ -89,64 +88,65 @@ impl<'a> IrFunctionEmitter<'a> {
                     .mod_scope
                     .context()
                     .bool_type()
-                    .fn_type(&fn_parameters, false),
+                    .fn_type(&fn_parameters, is_var_args),
                 Type::Unit => self
                     .mod_scope
                     .context()
                     .void_type()
-                    .fn_type(&fn_parameters, false),
+                    .fn_type(&fn_parameters, is_var_args),
                 Type::Char => self
                     .mod_scope
                     .context()
                     .i8_type()
-                    .fn_type(&fn_parameters, false),
+                    .fn_type(&fn_parameters, is_var_args),
                 Type::Str => self
                     .mod_scope
                     .context()
                     .ptr_type(AddressSpace::default())
-                    .fn_type(&fn_parameters, false),
+                    .fn_type(&fn_parameters, is_var_args),
                 Type::Float32 => self
                     .mod_scope
                     .context()
                     .f32_type()
-                    .fn_type(&fn_parameters, false),
+                    .fn_type(&fn_parameters, is_var_args),
                 Type::Float64 => self
                     .mod_scope
                     .context()
                     .f64_type()
-                    .fn_type(&fn_parameters, false),
+                    .fn_type(&fn_parameters, is_var_args),
                 Type::UInt8 | Type::Int8 => self
                     .mod_scope
                     .context()
                     .i8_type()
-                    .fn_type(&fn_parameters, false),
+                    .fn_type(&fn_parameters, is_var_args),
                 Type::UInt16 | Type::Int16 => self
                     .mod_scope
                     .context()
                     .i16_type()
-                    .fn_type(&fn_parameters, false),
+                    .fn_type(&fn_parameters, is_var_args),
                 Type::UInt32 | Type::Int32 => self
                     .mod_scope
                     .context()
                     .i32_type()
-                    .fn_type(&fn_parameters, false),
+                    .fn_type(&fn_parameters, is_var_args),
                 Type::UInt64 | Type::Int64 => self
                     .mod_scope
                     .context()
                     .i64_type()
-                    .fn_type(&fn_parameters, false),
+                    .fn_type(&fn_parameters, is_var_args),
                 Type::Ptr(other) => self
                     .mod_scope
                     .context()
                     .ptr_type(AddressSpace::default())
-                    .fn_type(&fn_parameters, false),
+                    .fn_type(&fn_parameters, is_var_args),
                 Type::Callable {
                     parameters,
                     return_type,
+                    var_args,
                 } => todo!(),
                 Type::NoReturn => unreachable!(),
             },
-            Some(Linkage::External),
+            None,
         );
 
         function.add_attribute(
@@ -237,6 +237,7 @@ impl<'a> IrFunctionEmitter<'a> {
                 Type::Callable {
                     parameters,
                     return_type,
+                    var_args,
                 } => todo!(),
                 Type::NoReturn => unreachable!(),
             },

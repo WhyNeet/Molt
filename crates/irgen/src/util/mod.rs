@@ -15,18 +15,8 @@ pub fn into_primitive_context_type<'a>(ty: &Type, cx: &'a Context) -> Option<Bas
         Type::Int32 | Type::UInt32 => Some(cx.i32_type().as_basic_type_enum()),
         Type::Int64 | Type::UInt64 => Some(cx.i64_type().as_basic_type_enum()),
         Type::Char => Some(cx.i8_type().as_basic_type_enum()),
+        Type::Ptr(_) => Some(cx.ptr_type(AddressSpace::default()).as_basic_type_enum()),
         // Type::Str => Some(cx.i8_type().array_type()),
-        other => None,
-    }
-}
-
-pub fn into_ptr_context_type<'a>(ty: &Type, cx: &'a Context) -> Option<BasicTypeEnum<'a>> {
-    match ty {
-        Type::Ptr(ty) => Some(
-            into_primitive_context_type(ty, cx)
-                .map(|ty| ty.ptr_type(AddressSpace::default()).as_basic_type_enum())
-                .unwrap_or_else(|| cx.ptr_type(AddressSpace::default()).as_basic_type_enum()),
-        ),
         other => None,
     }
 }

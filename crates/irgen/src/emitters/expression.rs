@@ -295,14 +295,17 @@ impl<'a> IrExpressionEmitter<'a> {
                             .into_iter()
                             .map(|(_, val)| BasicMetadataValueEnum::from(val))
                             .collect::<Vec<BasicMetadataValueEnum>>(),
-                        name,
+                        &store_in.unwrap().to_string(),
                     )
                     .unwrap();
 
-                Some((
-                    util::into_primitive_context_type(ty, &self.mod_scope.context()).unwrap(),
-                    value.try_as_basic_value().left().unwrap(),
-                ))
+                match ty {
+                    Type::Unit => None,
+                    _ => Some((
+                        util::into_primitive_context_type(ty, &self.mod_scope.context()).unwrap(),
+                        value.try_as_basic_value().left().unwrap(),
+                    )),
+                }
             }
             Expression::Cast { expr, ty } => {
                 let expr = self.emit_static_expression(expr).unwrap();
