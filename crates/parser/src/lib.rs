@@ -148,14 +148,7 @@ impl Parser {
         let parameters = self.parameters();
 
         let return_type = if self.matches(TokenKind::RArrow).is_some() {
-            let return_type = self
-                .matches(TokenKind::Ident(String::new()))
-                .expect("expected type after `->`");
-            let return_type = match &return_type.kind {
-                TokenKind::Ident(ident) => ident.to_string(),
-                _ => panic!("expected identifier."),
-            };
-            Type::try_from(return_type.as_str()).unwrap()
+            self.molt_type().expect("expected type after `->`")
         } else {
             Type::Unit
         };
