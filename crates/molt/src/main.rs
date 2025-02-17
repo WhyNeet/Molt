@@ -1,7 +1,7 @@
-use std::{fs, ptr};
+use std::{fs, path::Path, ptr};
 
 use checker::Checker;
-use irgen::{emitters::module::IrModuleEmitter, IrEmitter};
+use irgen::{emitters::module::IrModuleEmitter, FileType, IrEmitter, TargetInitializer};
 use lexer::scanner::Scanner;
 use lirgen::emitters::module::LirModuleEmitter;
 use parser::Parser;
@@ -22,7 +22,15 @@ fn main() {
     let emitter = IrEmitter::new();
     let ir = emitter.run(module);
 
-    println!("\n>>> IR >>>\n");
-
+    println!("\n>>> LLVM IR (debug) >>>\n\n");
     ir.print_to_stderr();
+
+    let target_machine = TargetInitializer::native().init_target_machine();
+
+    let output_path = Path::new("output.o");
+    target_machine
+        .write_to_file(&ir, FileType::Object, output_path)
+        .unwrap();
+
+    println!("\nDONE.");
 }
