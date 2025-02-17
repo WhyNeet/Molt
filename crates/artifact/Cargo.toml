@@ -1,0 +1,9 @@
+[package]
+name = "artifact"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lir = { path = "../lir" }
+common = { path = "../common" }
+inkwell = { version = "0.5.0", features = ["llvm18-0"] }

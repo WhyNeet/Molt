@@ -10,5 +10,5 @@ members = [
     "crates/lir",
     "crates/common",
     "crates/lirgen",
-    "crates/irgen",
+    "crates/irgen", "crates/artifact",
 ]
