@@ -16,6 +16,7 @@ pub enum Type {
     Callable {
         parameters: Vec<Type>,
         return_type: Box<Type>,
+        var_args: bool,
     },
     Unit,
     NoReturn,
