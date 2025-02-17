@@ -27,6 +27,7 @@ pub enum Statement {
         name: String,
         return_type: Type,
         parameters: Vec<(String, Type)>,
+        is_var_args: bool,
     },
     FunctionDeclaration {
         name: String,
