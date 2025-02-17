@@ -55,7 +55,7 @@ impl LirStatementEmitter {
                     .upgrade()
                     .unwrap()
                     .expr_emitter
-                    .emit(expr);
+                    .emit_into_variable(expr, None);
             }
             StatementKind::VariableDeclaration { name, expr, ty } => {
                 let ssa_name = self
