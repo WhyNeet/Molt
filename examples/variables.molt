@@ -1,6 +1,10 @@
-@main fun main() = {
-  let x: u8 = 7;
+@effect(io) @extern @vararg fun printf(format: *i8) -> i32;
+
+@effect(io) @main fun main() -> unit = {
+  let unit: u8 = 7;
   let y = 10;
 
-  let sum = x + y as u8;
+  let sum = unit + y as u8;
+
+  printf(&"sum of `%d` and `%d` is: `%d`" as *i8, &unit as *i8, &y as *i8, &sum as *i8);
 }
