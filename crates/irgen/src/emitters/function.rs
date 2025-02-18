@@ -29,12 +29,14 @@ impl<'a> VariableData<'a> {
 
 pub struct FunctionEmitterScope<'a> {
     ssa: RefCell<HashMap<u64, VariableData<'a>>>,
+    blocks: RefCell<Vec<BasicBlock<'a>>>,
 }
 
 impl<'a> FunctionEmitterScope<'a> {
     pub fn new() -> Self {
         Self {
             ssa: RefCell::default(),
+            blocks: RefCell::default(),
         }
     }
 
@@ -44,6 +46,18 @@ impl<'a> FunctionEmitterScope<'a> {
 
     pub fn get(&self, id: &u64) -> Option<VariableData<'a>> {
         self.ssa.borrow().get(id).map(|val| val.clone())
+    }
+
+    pub fn add_block(&self, block: BasicBlock<'a>) {
+        self.blocks.borrow_mut().push(block);
+    }
+
+    pub fn set_blocks(&self, blocks: Vec<BasicBlock<'a>>) {
+        self.blocks.replace(blocks);
+    }
+
+    pub fn get_block(&self, id: u64) -> Option<BasicBlock<'a>> {
+        self.blocks.borrow().get(id as usize).map(|b| *b)
     }
 }
 
@@ -146,7 +160,7 @@ impl<'a> IrFunctionEmitter<'a> {
                 } => todo!(),
                 Type::NoReturn => unreachable!(),
             },
-            None,
+            Some(Linkage::External),
         );
 
         function.add_attribute(
@@ -256,20 +270,23 @@ impl<'a> IrFunctionEmitter<'a> {
             );
         }
 
+        self.scope.set_blocks(
+            (0..blocks.len())
+                .map(|idx| {
+                    self.mod_scope
+                        .context()
+                        .append_basic_block(function, &blocks[idx].0.to_string())
+                })
+                .collect(),
+        );
+
         for block in blocks {
-            self.emit_for_block(block, function);
+            self.emit_for_block(block);
         }
     }
 
-    fn emit_for_block(
-        &self,
-        lir_block: &LirBasicBlock,
-        function: FunctionValue<'a>,
-    ) -> BasicBlock<'a> {
-        let block = self
-            .mod_scope
-            .context()
-            .append_basic_block(function, &lir_block.0.to_string());
+    fn emit_for_block(&self, lir_block: &LirBasicBlock) -> BasicBlock<'a> {
+        let block = self.scope.get_block(lir_block.0).unwrap();
 
         self.mod_scope.builder().position_at_end(block);
 

@@ -1,7 +1,11 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use inkwell::{builder::Builder, context::Context, module::Module, values::FunctionValue};
+use inkwell::{
+    builder::Builder, context::Context, module::Module, values::FunctionValue, AddressSpace,
+};
 use lir::{module::LirModule, statement::Statement};
+
+use crate::util;
 
 use super::function::IrFunctionEmitter;
 
@@ -87,7 +91,14 @@ impl<'a> IrModuleEmitter<'a> {
                     return_type,
                     *is_var_args,
                 ),
-                _ => todo!(),
+                Statement::GlobalVariableDeclaration { name, expr, ty } => {
+                    self.scope.module().add_global(
+                        util::into_primitive_context_type(ty, self.scope().context()).unwrap(),
+                        Some(AddressSpace::default()),
+                        name,
+                    );
+                }
+                _ => unreachable!(),
             }
         }
     }

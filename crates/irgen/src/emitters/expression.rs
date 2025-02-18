@@ -39,17 +39,18 @@ impl<'a> IrExpressionEmitter<'a> {
         store_in: Option<u64>,
     ) -> Option<(BasicTypeEnum<'a>, BasicValueEnum<'a>)> {
         match expression.as_ref() {
-            Expression::Static(expr, ty) => self.emit_static_expression(expr),
+            Expression::Static(expr, _ty) => self.emit_static_expression(expr),
             Expression::Binary {
                 left,
                 operator,
                 right,
                 ty,
+                operand_ty,
             } => {
                 let left_expr = self.emit_static_expression(left).unwrap();
                 let right_expr = self.emit_static_expression(right).unwrap();
 
-                if !ty.is_numeric() {
+                if !operand_ty.is_numeric() {
                     todo!("non-numeric binary operations are not yet implemented")
                 }
 
@@ -61,9 +62,9 @@ impl<'a> IrExpressionEmitter<'a> {
                 let res = if is_int {
                     let lhs = left_expr.1.into_int_value();
                     let rhs = right_expr.1.into_int_value();
-                    let is_signed = match ty {
-                        Type::UInt8 | Type::UInt16 | Type::UInt32 | Type::UInt64 => true,
-                        _ => false,
+                    let is_signed = match operand_ty {
+                        Type::UInt8 | Type::UInt16 | Type::UInt32 | Type::UInt64 => false,
+                        _ => true,
                     };
                     let name = &store_in.unwrap().to_string();
                     let builder = self.mod_scope.builder();

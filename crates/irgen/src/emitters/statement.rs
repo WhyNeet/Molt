@@ -62,7 +62,30 @@ impl<'a> IrStatementEmitter<'a> {
 
                 self.fn_scope.define(*name, VariableData::new(ty, value));
             }
-            _ => todo!(),
+            Statement::Branch {
+                condition,
+                then,
+                alternative,
+            } => {
+                let (_ty, value) = expr_emitter.emit_static_expression(condition).unwrap();
+                self.mod_scope
+                    .builder()
+                    .build_conditional_branch(
+                        value.into_int_value(),
+                        self.fn_scope.get_block(*then).unwrap(),
+                        self.fn_scope.get_block(*alternative).unwrap(),
+                    )
+                    .unwrap();
+            }
+            Statement::Goto(id) => {
+                self.mod_scope
+                    .builder()
+                    .build_unconditional_branch(self.fn_scope.get_block(*id).unwrap())
+                    .unwrap();
+            }
+            Statement::FunctionDeclaration { .. }
+            | Statement::GlobalVariableDeclaration { .. }
+            | Statement::ExternalFunctionDeclaration { .. } => unreachable!(),
         }
     }
 }
