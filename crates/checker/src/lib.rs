@@ -468,12 +468,22 @@ impl Checker {
                         return_type,
                         var_args,
                     } => {
-                        if arguments.len() < parameters.len() {
-                            panic!(
-                                "[call expression] wrong number of arguments: {}, expected at least {}",
-                                arguments.len(),
-                                parameters.len()
-                            )
+                        if var_args {
+                            if arguments.len() < parameters.len() {
+                                panic!(
+                                    "[call expression] wrong number of arguments: {}, expected at least {}",
+                                    arguments.len(),
+                                    parameters.len()
+                                )
+                            }
+                        } else {
+                            if arguments.len() != parameters.len() {
+                                panic!(
+                                    "[call expression] wrong number of arguments: {}, expected {}",
+                                    arguments.len(),
+                                    parameters.len()
+                                )
+                            }
                         }
 
                         let arguments = arguments
