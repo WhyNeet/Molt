@@ -198,8 +198,8 @@ impl<'a> IrExpressionEmitter<'a> {
                         _ => true,
                     };
                     let res = if is_int {
-                        let ty = util::into_primitive_context_type(ty, &self.mod_scope.context())
-                            .unwrap();
+                        // let ty = util::into_primitive_context_type(ty, &self.mod_scope.context())
+                        //     .unwrap();
                         let value = expr.1.into_int_value();
 
                         match operator {
@@ -218,7 +218,9 @@ impl<'a> IrExpressionEmitter<'a> {
                             UnaryOperator::Ref => unsafe {
                                 self.mod_scope.builder().build_gep(
                                     value.get_type(),
-                                    value.const_to_pointer(ty.ptr_type(AddressSpace::default())),
+                                    value.const_to_pointer(
+                                        self.mod_scope.context().ptr_type(AddressSpace::default()),
+                                    ),
                                     &[],
                                     name,
                                 )
@@ -307,27 +309,79 @@ impl<'a> IrExpressionEmitter<'a> {
                     )),
                 }
             }
-            Expression::Cast { expr, ty } => {
+            Expression::Trunc { expr, ty } => {
                 let expr = self.emit_static_expression(expr).unwrap();
 
                 let cx = self.mod_scope.context();
+                let builder = self.mod_scope.builder();
 
-                match ty {
-                    Type::Ptr(ptr_ty) => {
-                        let ptr_type = util::into_primitive_context_type(ptr_ty, &cx)
+                let trunc_ty = util::into_primitive_context_type(ty, cx).unwrap();
+                let name = store_in.unwrap().to_string();
+
+                let res = if expr.0.is_int_type() {
+                    builder
+                        .build_int_truncate(
+                            expr.1.into_int_value(),
+                            trunc_ty.into_int_type(),
+                            &name,
+                        )
+                        .unwrap()
+                        .as_basic_value_enum()
+                } else {
+                    builder
+                        .build_float_trunc(
+                            expr.1.into_float_value(),
+                            trunc_ty.into_float_type(),
+                            &name,
+                        )
+                        .unwrap()
+                        .as_basic_value_enum()
+                };
+
+                Some((trunc_ty, res))
+            }
+            Expression::Ext { expr, ty } => {
+                let expr = self.emit_static_expression(expr).unwrap();
+
+                let cx = self.mod_scope.context();
+                let builder = self.mod_scope.builder();
+
+                let trunc_ty = util::into_primitive_context_type(ty, cx).unwrap();
+                let name = store_in.unwrap().to_string();
+                let is_signed = ty.is_numeric_signed();
+
+                let res = if expr.0.is_int_type() {
+                    if is_signed {
+                        builder
+                            .build_int_s_extend(
+                                expr.1.into_int_value(),
+                                trunc_ty.into_int_type(),
+                                &name,
+                            )
                             .unwrap()
-                            .ptr_type(AddressSpace::default());
-                        Some((
-                            ptr_type.as_basic_type_enum(),
-                            self.mod_scope
-                                .builder()
-                                .build_bit_cast(expr.1, ptr_type, &store_in.unwrap().to_string())
-                                .unwrap()
-                                .as_basic_value_enum(),
-                        ))
+                            .as_basic_value_enum()
+                    } else {
+                        builder
+                            .build_int_z_extend(
+                                expr.1.into_int_value(),
+                                trunc_ty.into_int_type(),
+                                &name,
+                            )
+                            .unwrap()
+                            .as_basic_value_enum()
                     }
-                    _ => todo!(),
-                }
+                } else {
+                    builder
+                        .build_float_ext(
+                            expr.1.into_float_value(),
+                            trunc_ty.into_float_type(),
+                            &name,
+                        )
+                        .unwrap()
+                        .as_basic_value_enum()
+                };
+
+                Some((trunc_ty, res))
             }
             other => todo!("`{other:?}`"),
         }
