@@ -1,0 +1,11 @@
+@effect(io) @extern @vararg fun printf(format: *i8) -> i32;
+
+@effect(io) @main fun main() = {
+    let number = -10;
+
+    if number > 0 {
+        printf("`%d` is positive.", &number as *i8);
+    } else {
+        printf("`%d` is negative.", &number as *i8);
+    };
+}
