@@ -22,7 +22,11 @@ pub enum Expression {
         ident: String,
         ty: Type,
     },
-    Cast {
+    Trunc {
+        expr: Rc<StaticExpression>,
+        ty: Type,
+    },
+    Ext {
         expr: Rc<StaticExpression>,
         ty: Type,
     },
