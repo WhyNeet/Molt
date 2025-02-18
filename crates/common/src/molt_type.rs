@@ -41,7 +41,7 @@ impl TryFrom<&str> for Type {
             "bool" => Ok(Self::Bool),
             "char" => Ok(Self::Char),
             "str" => Ok(Self::Str),
-            "()" => Ok(Self::Unit),
+            "unit" => Ok(Self::Unit),
             "noreturn" => Ok(Self::NoReturn),
             other => Err(format!("`{other}` is not a primitive type.")),
         }
