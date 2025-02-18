@@ -76,6 +76,18 @@ impl Type {
         }
     }
 
+    pub fn is_numeric_signed(&self) -> bool {
+        match self {
+            Self::Int8
+            | Self::Int16
+            | Self::Int32
+            | Self::Int64
+            | Self::Float32
+            | Self::Float64 => true,
+            _ => false,
+        }
+    }
+
     pub fn can_cast(&self, other: &Type) -> bool {
         if self == other {
             return true;
@@ -95,6 +107,16 @@ impl Type {
                 _ => false,
             },
             _ => other.is_numeric(),
+        }
+    }
+
+    pub fn numeric_bits(&self) -> Option<u8> {
+        match self {
+            Self::Int8 | Self::UInt8 => Some(8),
+            Self::Int16 | Self::UInt16 => Some(16),
+            Self::Int32 | Self::UInt32 | Self::Float32 => Some(32),
+            Self::Int64 | Self::UInt64 | Self::Float64 => Some(64),
+            _ => None,
         }
     }
 }
