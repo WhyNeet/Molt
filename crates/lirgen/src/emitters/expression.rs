@@ -218,9 +218,20 @@ impl LirExpressionEmitter {
             ExpressionKind::Cast { expr, ty } => {
                 let ssa_name = self.emit_into_variable(expr, None);
 
-                let lir_expr = Expression::Cast {
-                    ty: ty.clone(),
-                    expr: Rc::new(StaticExpression::Identifier(ssa_name)),
+                let lir_expr = if ty.is_ptr() || expr.ty == *ty {
+                    Expression::Static(Rc::new(StaticExpression::Identifier(ssa_name)), ty.clone())
+                } else {
+                    if expr.ty.numeric_bits().unwrap() > ty.numeric_bits().unwrap() {
+                        Expression::Trunc {
+                            expr: Rc::new(StaticExpression::Identifier(ssa_name)),
+                            ty: ty.clone(),
+                        }
+                    } else {
+                        Expression::Ext {
+                            expr: Rc::new(StaticExpression::Identifier(ssa_name)),
+                            ty: ty.clone(),
+                        }
+                    }
                 };
 
                 if let Some(variable) = store_in {
