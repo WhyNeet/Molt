@@ -19,4 +19,5 @@ pub enum OutputFormat {
     Object,
     ASM,
     Bitcode,
+    IR,
 }

@@ -42,6 +42,7 @@ fn main() {
                 OutputFormat::Object => "o",
                 OutputFormat::Bitcode => "bc",
                 OutputFormat::ASM => "s",
+                OutputFormat::IR => "",
             }
         )
     });
@@ -51,6 +52,7 @@ fn main() {
         OutputFormat::Object => artifact_builder.produce_object_file(&module, output_path),
         OutputFormat::Bitcode => artifact_builder.produce_bitcode_file(&module, output_path),
         OutputFormat::ASM => artifact_builder.produce_asm_file(&module, output_path),
+        OutputFormat::IR => module.print_to_stderr(),
     }
 
     println!("\nCompiled 1 artifact.");
