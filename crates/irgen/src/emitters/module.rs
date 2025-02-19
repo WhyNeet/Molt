@@ -1,19 +1,24 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use inkwell::{
-    builder::Builder, context::Context, module::Module, values::FunctionValue, AddressSpace,
+    builder::Builder,
+    context::Context,
+    module::Module,
+    values::{BasicValueEnum, FunctionValue},
+    AddressSpace,
 };
 use lir::{module::LirModule, statement::Statement};
 
 use crate::util;
 
-use super::function::IrFunctionEmitter;
+use super::{expression::StaticExpressionEmitter, function::IrFunctionEmitter};
 
 pub struct ModuleEmitterScope<'a> {
     context: &'a Context,
     builder: RefCell<Option<Rc<Builder<'a>>>>,
     module: RefCell<Option<Rc<Module<'a>>>>,
     functions: RefCell<HashMap<String, FunctionValue<'a>>>,
+    globals: RefCell<HashMap<String, BasicValueEnum<'a>>>,
 }
 
 impl<'a> ModuleEmitterScope<'a> {
@@ -37,6 +42,10 @@ impl<'a> ModuleEmitterScope<'a> {
         self.functions.borrow().get(name).map(|f| *f)
     }
 
+    pub fn get_global(&self, name: &str) -> Option<BasicValueEnum<'a>> {
+        self.globals.borrow().get(name).map(|val| *val)
+    }
+
     fn init(&self) {
         *self.builder.borrow_mut() = Some(Rc::new(self.context.create_builder()));
         *self.module.borrow_mut() = Some(Rc::new(self.context.create_module("main")));
@@ -54,6 +63,7 @@ impl<'a> IrModuleEmitter<'a> {
             builder: RefCell::default(),
             module: RefCell::default(),
             functions: RefCell::default(),
+            globals: RefCell::default(),
         };
 
         Self {
@@ -92,11 +102,21 @@ impl<'a> IrModuleEmitter<'a> {
                     *is_var_args,
                 ),
                 Statement::GlobalVariableDeclaration { name, expr, ty } => {
-                    self.scope.module().add_global(
-                        util::into_primitive_context_type(ty, self.scope().context()).unwrap(),
-                        Some(AddressSpace::default()),
-                        name,
-                    );
+                    let static_emitter = StaticExpressionEmitter::new(self.scope(), None);
+                    let (_ty, value) = static_emitter.emit_static_expression(expr).unwrap();
+                    self.scope
+                        .module()
+                        .add_global(
+                            util::into_primitive_context_type(ty, self.scope().context()).unwrap(),
+                            Some(AddressSpace::default()),
+                            name,
+                        )
+                        .set_initializer(&value);
+
+                    self.scope()
+                        .globals
+                        .borrow_mut()
+                        .insert(name.to_string(), value);
                 }
                 _ => unreachable!(),
             }

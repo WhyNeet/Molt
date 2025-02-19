@@ -38,8 +38,13 @@ impl<'a> IrExpressionEmitter<'a> {
         expression: Rc<Expression>,
         store_in: Option<u64>,
     ) -> Option<(BasicTypeEnum<'a>, BasicValueEnum<'a>)> {
+        let static_emitter = StaticExpressionEmitter::new(
+            Rc::clone(&self.mod_scope),
+            Some(Rc::clone(&self.fn_scope)),
+        );
+
         match expression.as_ref() {
-            Expression::Static(expr, _ty) => self.emit_static_expression(expr),
+            Expression::Static(expr, _ty) => static_emitter.emit_static_expression(expr),
             Expression::Binary {
                 left,
                 operator,
@@ -47,8 +52,8 @@ impl<'a> IrExpressionEmitter<'a> {
                 ty,
                 operand_ty,
             } => {
-                let left_expr = self.emit_static_expression(left).unwrap();
-                let right_expr = self.emit_static_expression(right).unwrap();
+                let left_expr = static_emitter.emit_static_expression(left).unwrap();
+                let right_expr = static_emitter.emit_static_expression(right).unwrap();
 
                 if !operand_ty.is_numeric() {
                     todo!("non-numeric binary operations are not yet implemented")
@@ -191,16 +196,15 @@ impl<'a> IrExpressionEmitter<'a> {
                 ))
             }
             Expression::Unary { operator, expr, ty } => {
-                let expr = self.emit_static_expression(expr).unwrap();
+                let expr = static_emitter.emit_static_expression(expr).unwrap();
                 let name = &store_in.unwrap().to_string();
                 if ty.is_numeric() {
                     let is_int = match ty {
                         Type::Float32 | Type::Float64 => false,
                         _ => true,
                     };
+
                     let res = if is_int {
-                        // let ty = util::into_primitive_context_type(ty, &self.mod_scope.context())
-                        //     .unwrap();
                         let value = expr.1.into_int_value();
 
                         match operator {
@@ -311,7 +315,7 @@ impl<'a> IrExpressionEmitter<'a> {
                 }
             }
             Expression::Trunc { expr, ty } => {
-                let expr = self.emit_static_expression(expr).unwrap();
+                let expr = static_emitter.emit_static_expression(expr).unwrap();
 
                 let cx = self.mod_scope.context();
                 let builder = self.mod_scope.builder();
@@ -342,7 +346,7 @@ impl<'a> IrExpressionEmitter<'a> {
                 Some((trunc_ty, res))
             }
             Expression::Ext { expr, ty } => {
-                let expr = self.emit_static_expression(expr).unwrap();
+                let expr = static_emitter.emit_static_expression(expr).unwrap();
 
                 let cx = self.mod_scope.context();
                 let builder = self.mod_scope.builder();
@@ -387,6 +391,23 @@ impl<'a> IrExpressionEmitter<'a> {
             other => todo!("`{other:?}`"),
         }
     }
+}
+
+pub struct StaticExpressionEmitter<'a> {
+    mod_scope: Rc<ModuleEmitterScope<'a>>,
+    fn_scope: Option<Rc<FunctionEmitterScope<'a>>>,
+}
+
+impl<'a> StaticExpressionEmitter<'a> {
+    pub fn new(
+        mod_scope: Rc<ModuleEmitterScope<'a>>,
+        fn_scope: Option<Rc<FunctionEmitterScope<'a>>>,
+    ) -> Self {
+        Self {
+            mod_scope,
+            fn_scope,
+        }
+    }
 
     pub fn emit_static_expression(
         &self,
@@ -394,9 +415,19 @@ impl<'a> IrExpressionEmitter<'a> {
     ) -> Option<(BasicTypeEnum<'a>, BasicValueEnum<'a>)> {
         match expression {
             StaticExpression::Identifier(id) => {
-                let data = self.fn_scope.get(id).unwrap();
+                let data = if let Some(ref fn_scope) = self.fn_scope {
+                    fn_scope.get(id).map(|data| (data.ty, data.value))
+                } else {
+                    None
+                }
+                .or_else(|| {
+                    self.mod_scope
+                        .get_global(&id.to_string())
+                        .map(|global| (global.get_type(), global))
+                })
+                .unwrap();
 
-                Some((data.ty, data.value))
+                Some(data)
             }
             StaticExpression::Literal(literal) => {
                 let cx = self.mod_scope.context();

@@ -28,7 +28,7 @@ impl<'a> VariableData<'a> {
 }
 
 pub struct FunctionEmitterScope<'a> {
-    ssa: RefCell<HashMap<u64, VariableData<'a>>>,
+    ssa: RefCell<HashMap<String, VariableData<'a>>>,
     blocks: RefCell<Vec<BasicBlock<'a>>>,
 }
 
@@ -40,11 +40,11 @@ impl<'a> FunctionEmitterScope<'a> {
         }
     }
 
-    pub fn define(&self, id: u64, data: VariableData<'a>) {
+    pub fn define(&self, id: String, data: VariableData<'a>) {
         self.ssa.borrow_mut().insert(id, data);
     }
 
-    pub fn get(&self, id: &u64) -> Option<VariableData<'a>> {
+    pub fn get(&self, id: &str) -> Option<VariableData<'a>> {
         self.ssa.borrow().get(id).map(|val| val.clone())
     }
 
@@ -262,7 +262,7 @@ impl<'a> IrFunctionEmitter<'a> {
 
         for (id, ty) in parameters.iter().enumerate() {
             self.scope.ssa.borrow_mut().insert(
-                id as u64,
+                id.to_string(),
                 VariableData {
                     ty: *ty,
                     value: function.get_params()[id],

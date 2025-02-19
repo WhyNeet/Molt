@@ -8,7 +8,7 @@ use inkwell::{
 use lir::statement::Statement;
 
 use super::{
-    expression::IrExpressionEmitter,
+    expression::{IrExpressionEmitter, StaticExpressionEmitter},
     function::{FunctionEmitterScope, VariableData},
     module::ModuleEmitterScope,
 };
@@ -34,6 +34,10 @@ impl<'a> IrStatementEmitter<'a> {
     pub fn emit(&self, statement: Rc<Statement>) {
         let expr_emitter =
             IrExpressionEmitter::new(Rc::clone(&self.mod_scope), Rc::clone(&self.fn_scope));
+        let static_emitter = StaticExpressionEmitter::new(
+            Rc::clone(&self.mod_scope),
+            Some(Rc::clone(&self.fn_scope)),
+        );
 
         match statement.as_ref() {
             Statement::StaticVariableDeclaration { id, expr, ty } => {
@@ -45,10 +49,11 @@ impl<'a> IrStatementEmitter<'a> {
 
                 let (ty, value) = expr_emitter.emit(Rc::clone(expr), Some(*id)).unwrap();
 
-                self.fn_scope.define(*id, VariableData::new(ty, value));
+                self.fn_scope
+                    .define(id.to_string(), VariableData::new(ty, value));
             }
             Statement::Return(expr) => {
-                let value = expr_emitter
+                let value = static_emitter
                     .emit_static_expression(expr)
                     .map(|(ty, val)| val);
 
@@ -60,14 +65,15 @@ impl<'a> IrStatementEmitter<'a> {
             Statement::VariableDeclaration { name, expr, ty } => {
                 let (ty, value) = expr_emitter.emit(Rc::clone(expr), Some(*name)).unwrap();
 
-                self.fn_scope.define(*name, VariableData::new(ty, value));
+                self.fn_scope
+                    .define(name.to_string(), VariableData::new(ty, value));
             }
             Statement::Branch {
                 condition,
                 then,
                 alternative,
             } => {
-                let (_ty, value) = expr_emitter.emit_static_expression(condition).unwrap();
+                let (_ty, value) = static_emitter.emit_static_expression(condition).unwrap();
                 self.mod_scope
                     .builder()
                     .build_conditional_branch(
