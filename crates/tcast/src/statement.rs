@@ -1,10 +1,7 @@
 use std::rc::Rc;
 
-use crate::{expression::Expression, fn_attribute::FunctionAttribute};
-use ast::annotation::Annotation;
+use crate::{effect::Effect, expression::Expression, fn_attribute::FunctionAttribute};
 use common::Type;
-
-use crate::effect::Effect;
 
 #[derive(Debug, PartialEq)]
 pub struct Statement {
