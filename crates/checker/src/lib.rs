@@ -226,11 +226,15 @@ impl Checker {
     ) -> CheckedStatement {
         let checked = self.expression(Rc::clone(expr), ty.clone(), true);
 
-        self.environment.borrow().declare(
+        let is_shadowed = self.environment.borrow().declare(
             name.clone(),
             ty.unwrap_or(checked.ty.clone()),
             checked.effects.clone(),
         );
+
+        if is_shadowed && self.environment.borrow().enclosing().is_none() {
+            panic!("[var_decl] cannot shadow variables in module scope.");
+        }
 
         CheckedStatement {
             effects: checked.effects.clone(),

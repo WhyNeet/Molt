@@ -24,6 +24,10 @@ impl Environment {
         self.enclosing = Some(enclosing);
     }
 
+    pub fn enclosing(&self) -> Option<Rc<Environment>> {
+        self.enclosing.as_ref().map(Rc::clone)
+    }
+
     pub fn with_enclosing(enclosing: Rc<Environment>) -> Self {
         Self {
             enclosing: Some(enclosing),
