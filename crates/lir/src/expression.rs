@@ -10,6 +10,7 @@ pub enum Expression {
         left: StaticExpression,
         operator: BinaryOperator,
         right: StaticExpression,
+        operand_ty: Type,
         ty: Type,
     },
     Unary {
@@ -41,7 +42,7 @@ pub enum Expression {
 #[derive(Debug)]
 pub enum StaticExpression {
     Literal(Rc<Literal>),
-    Identifier(u64),
+    Identifier(String),
     FnIdentifier(String),
     Ptr(Rc<StaticExpression>),
 }
@@ -54,7 +55,7 @@ impl StaticExpression {
         }
     }
 
-    pub fn as_ident(&self) -> Option<&u64> {
+    pub fn as_ident(&self) -> Option<&str> {
         match self {
             Self::Identifier(value) => Some(value),
             _ => None,

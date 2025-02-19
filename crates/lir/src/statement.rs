@@ -9,9 +9,10 @@ use crate::{
 
 #[derive(Debug)]
 pub enum Statement {
-    Expression {
-        expr: Rc<Expression>,
-        end_semi: bool,
+    GlobalVariableDeclaration {
+        name: String,
+        expr: Rc<StaticExpression>,
+        ty: Type,
     },
     VariableDeclaration {
         name: u64,
