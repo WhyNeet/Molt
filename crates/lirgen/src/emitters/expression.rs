@@ -112,7 +112,7 @@ impl LirExpressionEmitter {
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Static(
                         Rc::new(StaticExpression::Ptr(Rc::new(
-                            StaticExpression::Identifier(ssa_id),
+                            StaticExpression::Identifier(ssa_id.to_string()),
                         ))),
                         expr.ty.clone(),
                     )));
@@ -131,9 +131,10 @@ impl LirExpressionEmitter {
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Binary {
-                        left: StaticExpression::Identifier(left_ssa_name),
+                        left: StaticExpression::Identifier(left_ssa_name.to_string()),
                         operator: BinaryOperator::from(operator),
-                        right: StaticExpression::Identifier(right_ssa_name),
+                        right: StaticExpression::Identifier(right_ssa_name.to_string()),
+                        operand_ty: left.ty.clone(),
                         ty: expr.ty.clone(),
                     }));
                 }
@@ -147,6 +148,14 @@ impl LirExpressionEmitter {
                     .environment
                     .borrow()
                     .get(ident)
+                    .map(|id| id.to_string())
+                    .or_else(|| {
+                        if self.mod_scope.has_global(ident) {
+                            Some(ident.to_string())
+                        } else {
+                            None
+                        }
+                    })
                     .unwrap();
                 let sub_expr = StaticExpression::Identifier(id);
 
@@ -165,7 +174,7 @@ impl LirExpressionEmitter {
 
                 let lir_expr = Expression::Unary {
                     operator: UnaryOperator::from(operator),
-                    expr: StaticExpression::Identifier(ssa_name),
+                    expr: StaticExpression::Identifier(ssa_name.to_string()),
                     ty: sub_expr.ty.clone(),
                 };
 
@@ -178,7 +187,7 @@ impl LirExpressionEmitter {
 
                 if let Some(variable) = store_in {
                     variable.store(Rc::new(Expression::Static(
-                        Rc::new(StaticExpression::Identifier(ssa_name)),
+                        Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
                         expr.ty.clone(),
                     )));
                 }
@@ -199,7 +208,7 @@ impl LirExpressionEmitter {
                 for argument in arguments {
                     let ssa_name = self.emit_into_variable(argument, None);
                     fn_args.push(Rc::new(Expression::Static(
-                        Rc::new(StaticExpression::Identifier(ssa_name)),
+                        Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
                         expr.ty.clone(),
                     )));
                 }
@@ -219,16 +228,19 @@ impl LirExpressionEmitter {
                 let ssa_name = self.emit_into_variable(expr, None);
 
                 let lir_expr = if ty.is_ptr() || expr.ty == *ty {
-                    Expression::Static(Rc::new(StaticExpression::Identifier(ssa_name)), ty.clone())
+                    Expression::Static(
+                        Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
+                        ty.clone(),
+                    )
                 } else {
                     if expr.ty.numeric_bits().unwrap() > ty.numeric_bits().unwrap() {
                         Expression::Trunc {
-                            expr: Rc::new(StaticExpression::Identifier(ssa_name)),
+                            expr: Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
                             ty: ty.clone(),
                         }
                     } else {
                         Expression::Ext {
-                            expr: Rc::new(StaticExpression::Identifier(ssa_name)),
+                            expr: Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
                             ty: ty.clone(),
                         }
                     }
@@ -269,7 +281,7 @@ impl LirExpressionEmitter {
                 }
 
                 let branch = Statement::Branch {
-                    condition: Rc::new(StaticExpression::Identifier(condition_ssa)),
+                    condition: Rc::new(StaticExpression::Identifier(condition_ssa.to_string())),
                     then: body_id,
                     alternative: alternative_id.unwrap_or(after_conditional_block_id),
                 };

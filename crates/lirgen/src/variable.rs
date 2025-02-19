@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use common::Type;
-use lir::expression::{Expression, StaticExpression};
+use lir::expression::Expression;
 
 #[derive(Debug)]
 pub struct LirVariable {

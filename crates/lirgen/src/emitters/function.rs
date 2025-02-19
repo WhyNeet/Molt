@@ -110,7 +110,7 @@ impl LirFunctionEmitter {
         };
 
         let ret = if let Some(ssa_name) = ssa_name {
-            Statement::Return(Rc::new(StaticExpression::Identifier(ssa_name)))
+            Statement::Return(Rc::new(StaticExpression::Identifier(ssa_name.to_string())))
         } else {
             Statement::Return(Rc::new(StaticExpression::Literal(Rc::new(Literal::Unit))))
         };

@@ -44,11 +44,11 @@ impl LirStatementEmitter {
                 // block implicit returns will be processed differently
                 // this is ONLY for expressions that end with `;`
 
-                // if expr.effects.is_empty() {
-                //     // if there are no effects
-                //     // do not execute an expression statement (skip it)
-                //     return;
-                // }
+                if expr.effects.is_empty() {
+                    // if there are no effects
+                    // do not execute an expression statement (skip it)
+                    return;
+                }
 
                 self.scope
                     .borrow()
@@ -76,7 +76,7 @@ impl LirStatementEmitter {
                 let stmt = Statement::VariableDeclaration {
                     name: id,
                     expr: Rc::new(Expression::Static(
-                        Rc::new(StaticExpression::Identifier(ssa_name)),
+                        Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
                         expr.ty.clone(),
                     )),
                     ty: ty.clone(),
@@ -102,7 +102,8 @@ impl LirStatementEmitter {
                     .expr_emitter
                     .emit_into_variable(expr, None);
 
-                let ret = Statement::Return(Rc::new(StaticExpression::Identifier(ssa_name)));
+                let ret =
+                    Statement::Return(Rc::new(StaticExpression::Identifier(ssa_name.to_string())));
 
                 self.builder.push(Rc::new(ret));
             }
