@@ -1,9 +1,8 @@
-use std::{io::BufWriter, rc::Rc};
+use std::rc::Rc;
 
 use common::Literal;
 
 use crate::{
-    block::BasicBlock,
     expression::{Expression, StaticExpression},
     module::LirModule,
     statement::Statement,
@@ -113,11 +112,15 @@ impl LirRenderer {
 
     fn render_block(&mut self, block: &Vec<Rc<Statement>>, f: &mut impl std::io::Write) {
         for stmt in block {
-            self.scope += 1;
+            if self.scope == 0 {
+                self.scope += 1;
+            }
             write!(f, "{}", (0..=self.scope).map(|_| "  ").collect::<String>()).unwrap();
             self.render_stmt(stmt, f);
             write!(f, "\n").unwrap();
-            self.scope -= 1;
+            if self.scope == 1 {
+                self.scope -= 1;
+            }
         }
     }
 
