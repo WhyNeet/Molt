@@ -9,6 +9,7 @@ pub struct Expression {
     pub expr: Rc<ExpressionKind>,
     pub effects: Vec<Effect>,
     pub ty: Type,
+    // TODO: pub is_assignable: bool
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -26,7 +27,7 @@ pub enum ExpressionKind {
     Identifier(String),
     Literal(Rc<Literal>),
     Assignment {
-        identifier: String,
+        assignee: Rc<Expression>,
         expr: Rc<Expression>,
     },
     Block(Vec<Rc<Statement>>),
