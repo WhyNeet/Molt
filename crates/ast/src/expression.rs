@@ -19,7 +19,7 @@ pub enum Expression {
     Identifier(String),
     Literal(Rc<Literal>),
     Assignment {
-        identifier: String,
+        assignee: Rc<Expression>,
         expr: Rc<Expression>,
     },
     Block(Vec<Rc<Statement>>),
