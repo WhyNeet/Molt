@@ -312,14 +312,17 @@ impl Checker {
                 expr: sub_expr,
             } => {
                 match operator {
-                    Operator::Ref => (),
-                    Operator::Deref => todo!(),
+                    Operator::Ref | Operator::Deref => (),
                     other => panic!("`{other:?}` is not a unary operator"),
                 };
 
                 let checked = self.expression(Rc::clone(sub_expr), None, exact);
                 if let Some(expect_type) = expect_type {
-                    let checked_ty = Type::Ptr(Box::new(checked.ty.clone()));
+                    let checked_ty = if *operator == Operator::Deref {
+                        checked.ty.clone()
+                    } else {
+                        Type::Ptr(Box::new(checked.ty.clone()))
+                    };
 
                     if !type_cmp(&checked_ty, &expect_type, exact) {
                         panic!(
@@ -338,7 +341,11 @@ impl Checker {
 
                 CheckedExpression {
                     effects: checked.effects.clone(),
-                    ty: operator.produces(checked.ty.clone()),
+                    ty: operator.produces(if *operator == Operator::Deref {
+                        Type::Ptr(Box::new(checked.ty.clone()))
+                    } else {
+                        checked.ty.clone()
+                    }),
                     expr: Rc::new(ExpressionKind::Unary {
                         operator: *operator,
                         expr: Rc::new(checked),
