@@ -50,7 +50,8 @@ impl Operator {
             Operator::Mul | Operator::Div => operand_type.is_numeric(),
             Operator::And | Operator::Or | Operator::Not => operand_type == &Type::Bool,
             Operator::BitXor | Operator::Shl | Operator::Shr => operand_type.is_numeric(),
-            Operator::Ref | Operator::Deref => true,
+            Operator::Ref => true,
+            Operator::Deref => operand_type.is_ptr(),
         }
     }
 }
