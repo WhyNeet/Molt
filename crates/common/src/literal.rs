@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::{Type, Typed};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -51,6 +53,23 @@ pub enum Number {
     Int64(i64),
     Float32(f32),
     Float64(f64),
+}
+
+impl fmt::Display for Number {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UInt8(n) => write!(f, "{n}"),
+            Self::UInt16(n) => write!(f, "{n}"),
+            Self::UInt32(n) => write!(f, "{n}"),
+            Self::UInt64(n) => write!(f, "{n}"),
+            Self::Int8(n) => write!(f, "{n}"),
+            Self::Int16(n) => write!(f, "{n}"),
+            Self::Int32(n) => write!(f, "{n}"),
+            Self::Int64(n) => write!(f, "{n}"),
+            Self::Float32(n) => write!(f, "{n}"),
+            Self::Float64(n) => write!(f, "{n}"),
+        }
+    }
 }
 
 impl Typed for Number {

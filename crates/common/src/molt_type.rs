@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     UInt8,
@@ -21,6 +23,43 @@ pub enum Type {
     Unit,
     NoReturn,
     Ptr(Box<Type>),
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Bool => write!(f, "bool"),
+            Self::Char => write!(f, "char"),
+            Self::Str => write!(f, "str"),
+            Self::Int8 => write!(f, "i8"),
+            Self::Int16 => write!(f, "i16"),
+            Self::Int32 => write!(f, "i32"),
+            Self::Int64 => write!(f, "i64"),
+            Self::UInt8 => write!(f, "u8"),
+            Self::UInt16 => write!(f, "u16"),
+            Self::UInt32 => write!(f, "u32"),
+            Self::UInt64 => write!(f, "u64"),
+            Type::Float32 => write!(f, "f32"),
+            Type::Float64 => write!(f, "f64"),
+            Type::Callable {
+                parameters,
+                return_type,
+                var_args,
+            } => write!(
+                f,
+                "callable({}{}{}) -> {return_type}",
+                parameters[..(parameters.len() - 1)]
+                    .iter()
+                    .map(|param| param.to_string() + ", ")
+                    .collect::<String>(),
+                parameters[parameters.len() - 1],
+                if *var_args { ", ..." } else { "" }
+            ),
+            Type::Unit => write!(f, "unit"),
+            Type::NoReturn => unreachable!(),
+            Type::Ptr(ty) => write!(f, "*{ty}"),
+        }
+    }
 }
 
 impl TryFrom<&str> for Type {
