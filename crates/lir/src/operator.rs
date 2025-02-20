@@ -1,3 +1,5 @@
+use std::fmt;
+
 use common::Operator;
 
 #[derive(Debug)]
@@ -17,6 +19,28 @@ pub enum BinaryOperator {
     Ge,
     Lt,
     Le,
+}
+
+impl fmt::Display for BinaryOperator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Add => write!(f, "+"),
+            Self::Sub => write!(f, "-"),
+            Self::Mul => write!(f, "*"),
+            Self::Div => write!(f, "/"),
+            Self::Eq => write!(f, "=="),
+            Self::Ne => write!(f, "!="),
+            Self::Gt => write!(f, ">"),
+            Self::Ge => write!(f, ">="),
+            Self::Lt => write!(f, "<"),
+            Self::Le => write!(f, "<="),
+            Self::And => write!(f, "&&"),
+            Self::Or => write!(f, "||"),
+            Self::BitXor => write!(f, "^"),
+            Self::Shl => write!(f, "<<"),
+            Self::Shr => write!(f, ">>"),
+        }
+    }
 }
 
 impl From<&Operator> for BinaryOperator {
@@ -48,6 +72,17 @@ pub enum UnaryOperator {
     Not,
     Ref,
     Deref,
+}
+
+impl fmt::Display for UnaryOperator {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Neg => write!(f, "-"),
+            Self::Not => write!(f, "!"),
+            Self::Ref => write!(f, "&"),
+            Self::Deref => write!(f, "*"),
+        }
+    }
 }
 
 impl From<&Operator> for UnaryOperator {
