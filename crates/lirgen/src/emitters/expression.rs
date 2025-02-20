@@ -57,7 +57,7 @@ impl LirExpressionEmitter {
 }
 
 impl LirExpressionEmitter {
-    /// Returns the identifier for a new temporary variable
+    /// Returns the identifier for a new temporary variable.
     pub fn emit_into_variable(
         &self,
         expr: &CheckedExpression,
@@ -327,7 +327,15 @@ impl LirExpressionEmitter {
                 let goto = Statement::Goto(loop_block_id);
                 self.builder.push(Rc::new(goto));
             }
-            ExpressionKind::Assignment { identifier, expr } => todo!(),
+            ExpressionKind::Assignment { assignee, expr } => {
+                let assignee_ssa_id = self.emit_into_variable(assignee, None);
+                let value_ssa_id = self.emit_into_variable(expr, None);
+                let store = Statement::Store {
+                    id: assignee_ssa_id,
+                    value: Rc::new(StaticExpression::Identifier(value_ssa_id.to_string())),
+                };
+                self.builder.push(Rc::new(store));
+            }
             ExpressionKind::MemberAccess { expr, ident } => todo!(),
         }
     }
