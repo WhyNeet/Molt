@@ -280,21 +280,16 @@ impl Parser {
     }
 
     fn assignment(&mut self) -> Expression {
-        let expr = self.logic_or();
+        let assignee = self.logic_or();
 
         if self.matches(TokenKind::Eq).is_none() {
-            return expr;
+            return assignee;
         }
-
-        let identifier = match expr {
-            Expression::Identifier(ident) => ident,
-            other => panic!("expected identifier, got: {other:?}"),
-        };
 
         let expression = self.logic_or();
 
         Expression::Assignment {
-            identifier,
+            assignee: Rc::new(assignee),
             expr: Rc::new(expression),
         }
     }
