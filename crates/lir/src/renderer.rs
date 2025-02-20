@@ -107,6 +107,11 @@ impl LirRenderer {
                 self.render_static_expression(expr, f);
                 write!(f, ";").unwrap();
             }
+            Statement::Store { id, value } => {
+                write!(f, "store ").unwrap();
+                self.render_static_expression(value, f);
+                write!(f, " in {id};").unwrap();
+            }
         }
     }
 

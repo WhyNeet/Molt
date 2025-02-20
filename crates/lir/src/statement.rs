@@ -42,5 +42,9 @@ pub enum Statement {
         then: u64,
         alternative: u64,
     },
+    Store {
+        id: u64,
+        value: Rc<StaticExpression>,
+    },
     Return(Rc<StaticExpression>),
 }
