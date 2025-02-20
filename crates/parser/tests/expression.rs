@@ -243,3 +243,27 @@ fn ref_expression_works() {
         }
     );
 }
+
+#[test]
+fn assignment_works() {
+    let input = r#"a.b = 1"#;
+    let tokens = Scanner::tokenize(input).collect();
+
+    let tree = Parser::new(tokens).parse();
+
+    assert_eq!(
+        tree[0],
+        Statement::Expression {
+            expr: Rc::new(Expression::Assignment {
+                assignee: Rc::new(Expression::MemberAccess {
+                    expr: Rc::new(Expression::Identifier("a".to_string())),
+                    ident: "b".to_string()
+                }),
+                expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                    Number::Int32(1)
+                ))))
+            }),
+            end_semi: false
+        }
+    );
+}

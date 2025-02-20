@@ -20,7 +20,7 @@ fn loop_works() {
             expr: Rc::new(Expression::Loop(vec![
                 Rc::new(Statement::Expression {
                     expr: Rc::new(Expression::Assignment {
-                        identifier: "a".to_string(),
+                        assignee: Rc::new(Expression::Identifier("a".to_string())),
                         expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
                             Number::Int32(1)
                         ))))
