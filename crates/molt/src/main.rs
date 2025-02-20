@@ -8,6 +8,7 @@ use checker::Checker;
 use clap::{CommandFactory, Parser};
 use irgen::IrEmitter;
 use lexer::scanner::Scanner;
+use lir::renderer::LirRenderer;
 use lirgen::emitters::module::LirModuleEmitter;
 
 fn main() {
@@ -16,6 +17,7 @@ fn main() {
         MoltCliArgs::command().print_help().unwrap();
         process::exit(0)
     });
+    let output_format = args.format.unwrap_or(OutputFormat::Object);
     let contents = fs::read_to_string(&filename).unwrap();
 
     let tokens = Scanner::tokenize(&contents).collect();
@@ -25,14 +27,21 @@ fn main() {
 
     let module = LirModuleEmitter::new().emit(tree);
 
-    println!("parsed tree:\n{module:?}");
+    if output_format == OutputFormat::LIR {
+        let module = LirRenderer::new().render_to_string(&module);
+        println!("{module}");
+        process::exit(0)
+    }
 
     let emitter = IrEmitter::new();
     let module = emitter.run(module);
 
-    let artifact_builder = BuildArtifactGenerator::default();
+    if output_format == OutputFormat::IR {
+        module.print_to_stderr();
+        process::exit(0)
+    }
 
-    let output_format = args.format.unwrap_or(OutputFormat::Object);
+    let artifact_builder = BuildArtifactGenerator::default();
 
     let output_path = args.output.unwrap_or_else(|| {
         format!(
@@ -42,7 +51,7 @@ fn main() {
                 OutputFormat::Object => "o",
                 OutputFormat::Bitcode => "bc",
                 OutputFormat::ASM => "s",
-                OutputFormat::IR => "",
+                OutputFormat::IR | OutputFormat::LIR => unreachable!(),
             }
         )
     });
@@ -52,7 +61,7 @@ fn main() {
         OutputFormat::Object => artifact_builder.produce_object_file(&module, output_path),
         OutputFormat::Bitcode => artifact_builder.produce_bitcode_file(&module, output_path),
         OutputFormat::ASM => artifact_builder.produce_asm_file(&module, output_path),
-        OutputFormat::IR => module.print_to_stderr(),
+        OutputFormat::IR | OutputFormat::LIR => unreachable!(),
     }
 
     println!("\nCompiled 1 artifact.");

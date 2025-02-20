@@ -14,10 +14,11 @@ pub struct MoltCliArgs {
     pub output: Option<String>,
 }
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone, ValueEnum, PartialEq)]
 pub enum OutputFormat {
     Object,
     ASM,
     Bitcode,
     IR,
+    LIR,
 }

@@ -253,6 +253,7 @@ dependencies = [
  "clap",
  "irgen",
  "lexer",
+ "lir",
  "lirgen",
  "parser",
 ]

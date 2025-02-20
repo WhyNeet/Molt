@@ -8,6 +8,7 @@ lexer = { path = "../lexer" }
 parser = { path = "../parser" }
 checker = { path = "../checker" }
 lirgen = { path = "../lirgen" }
+lir = { path = "../lir" }
 irgen = { path = "../irgen" }
 artifact = { path = "../artifact" }
 clap = { version = "4.5.29", features = ["derive"] }
