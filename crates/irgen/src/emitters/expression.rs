@@ -220,19 +220,17 @@ impl<'a> IrExpressionEmitter<'a> {
                                 .build_not(value, name)
                                 .unwrap()
                                 .as_basic_value_enum(),
-                            UnaryOperator::Ref => unsafe {
-                                self.mod_scope.builder().build_gep(
-                                    value.get_type(),
-                                    value.const_to_pointer(
-                                        self.mod_scope.context().ptr_type(AddressSpace::default()),
-                                    ),
-                                    &[],
-                                    name,
-                                )
+                            UnaryOperator::Ref => {
+                                let alloca = self
+                                    .mod_scope
+                                    .builder()
+                                    .build_alloca(value.get_type(), name)
+                                    .unwrap();
+                                self.mod_scope.builder().build_store(alloca, value).unwrap();
+
+                                alloca.as_basic_value_enum()
                             }
-                            .unwrap()
-                            .as_basic_value_enum(),
-                            UnaryOperator::Deref => todo!(),
+                            UnaryOperator::Deref => unreachable!(),
                         }
                     } else {
                         let value = expr.1.into_float_value();
@@ -245,9 +243,14 @@ impl<'a> IrExpressionEmitter<'a> {
                                 .build_float_neg(value, name)
                                 .unwrap()
                                 .as_basic_value_enum(),
-                            UnaryOperator::Ref => todo!(),
-                            UnaryOperator::Deref => todo!(),
-                            UnaryOperator::Not => todo!(),
+                            UnaryOperator::Ref => self
+                                .mod_scope
+                                .builder()
+                                .build_alloca(value.get_type(), name)
+                                .unwrap()
+                                .as_basic_value_enum(),
+                            UnaryOperator::Deref => unreachable!(),
+                            UnaryOperator::Not => unreachable!(),
                         }
                     };
 
@@ -267,6 +270,12 @@ impl<'a> IrExpressionEmitter<'a> {
                         }
                         .unwrap()
                         .as_basic_value_enum(),
+                        UnaryOperator::Deref => self
+                            .mod_scope
+                            .builder()
+                            .build_load(expr.1.get_type(), expr.1.into_pointer_value(), name)
+                            .unwrap()
+                            .as_basic_value_enum(),
                         _ => todo!(),
                     };
 
