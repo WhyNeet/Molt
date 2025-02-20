@@ -6,5 +6,5 @@
 
   let sum = unit + y as u8;
 
-  printf(&"sum of `%d` and `%d` is: `%d`" as *i8, &unit as *i8, &y as *i8, &sum as *i8);
+  printf(&"sum of `%d` and `%d` is: `%d`" as *i8, unit, y, sum);
 }
