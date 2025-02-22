@@ -142,11 +142,11 @@ pub fn struct_declaration_works() {
             port: u16 = 8080u16;
             host: str = "127.0.0.1";
 
-            fun get_port(self: Config) -> u16 = {
+            fun get_port(self) -> u16 = {
                 self.port
             }
 
-            fun get_host(self: Config) -> str = {
+            fun get_host(self) -> str = {
                 self.host
             }
         }
@@ -180,11 +180,12 @@ pub fn struct_declaration_works() {
                     "get_port".to_string(),
                     MethodDeclaration {
                         return_type: Type::UInt16,
-                        parameters: vec![("self".to_string(), Type::Named("Config".to_string()))],
+                        parameters: vec![],
+                        self_param: Some(false),
                         expression: Rc::new(Expression::Block(vec![Rc::new(
                             Statement::Expression {
                                 expr: Rc::new(Expression::MemberAccess {
-                                    expr: Rc::new(Expression::Identifier("self".to_string())),
+                                    expr: Rc::new(Expression::Self_),
                                     ident: "port".to_string()
                                 }),
                                 end_semi: false
@@ -196,11 +197,12 @@ pub fn struct_declaration_works() {
                     "get_host".to_string(),
                     MethodDeclaration {
                         return_type: Type::Str,
-                        parameters: vec![("self".to_string(), Type::Named("Config".to_string()))],
+                        parameters: vec![],
+                        self_param: Some(false),
                         expression: Rc::new(Expression::Block(vec![Rc::new(
                             Statement::Expression {
                                 expr: Rc::new(Expression::MemberAccess {
-                                    expr: Rc::new(Expression::Identifier("self".to_string())),
+                                    expr: Rc::new(Expression::Self_),
                                     ident: "host".to_string()
                                 }),
                                 end_semi: false
