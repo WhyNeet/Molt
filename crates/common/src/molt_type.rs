@@ -23,6 +23,7 @@ pub enum Type {
     Unit,
     NoReturn,
     Ptr(Box<Type>),
+    Named(String),
 }
 
 impl fmt::Display for Type {
@@ -58,6 +59,7 @@ impl fmt::Display for Type {
             Type::Unit => write!(f, "unit"),
             Type::NoReturn => unreachable!(),
             Type::Ptr(ty) => write!(f, "*{ty}"),
+            Type::Named(name) => write!(f, "{name}"),
         }
     }
 }
@@ -82,7 +84,7 @@ impl TryFrom<&str> for Type {
             "str" => Ok(Self::Str),
             "unit" => Ok(Self::Unit),
             "noreturn" => Ok(Self::NoReturn),
-            other => Err(format!("`{other}` is not a primitive type.")),
+            struct_name => Ok(Self::Named(struct_name.to_string())),
         }
     }
 }

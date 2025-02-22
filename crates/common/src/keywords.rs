@@ -10,6 +10,7 @@ pub enum Keyword {
     Continue,
     As,
     Mut,
+    Struct,
 }
 
 impl TryFrom<&str> for Keyword {
@@ -27,6 +28,7 @@ impl TryFrom<&str> for Keyword {
             "continue" => Ok(Keyword::Continue),
             "as" => Ok(Keyword::As),
             "mut" => Ok(Keyword::Mut),
+            "struct" => Ok(Keyword::Struct),
             other => Err(format!("`{other}` is not a keyword.")),
         }
     }
