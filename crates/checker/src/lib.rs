@@ -70,9 +70,12 @@ impl Checker {
                 return_type.clone(),
                 annotations,
             ),
-            Statement::VariableDeclaration { expr, name, ty } => {
-                self.var_decl(name.to_string(), expr, ty.clone())
-            }
+            Statement::VariableDeclaration {
+                expr,
+                name,
+                ty,
+                is_mut,
+            } => self.var_decl(name.to_string(), expr, ty.clone(), *is_mut),
             Statement::Expression { expr, end_semi } => self.expression_stmt(expr, *end_semi),
             Statement::Return(expr) => self.return_stmt(expr),
         }
@@ -110,7 +113,7 @@ impl Checker {
         let expr = if let Some(expr) = block {
             let fn_env = Environment::with_enclosing(Rc::clone(&*self.environment.borrow()));
             for (param_name, param_type) in parameters {
-                fn_env.declare(param_name.clone(), param_type.clone(), vec![]);
+                fn_env.declare(param_name.clone(), param_type.clone(), vec![], false);
             }
 
             let prev_env = self.environment.replace(Rc::new(fn_env));
@@ -119,8 +122,16 @@ impl Checker {
 
             let checked = Some(self.expression(expr, Some(return_type.clone()), true));
 
-            self.environment.replace(prev_env);
+            let fn_env = self.environment.replace(prev_env);
             self.context.replace(prev_cx.unwrap());
+
+            let declarations = fn_env.get_all();
+
+            for (name, declaration) in declarations.borrow().iter() {
+                if declaration.num_mutations == 0 {
+                    println!("[warning] `{name}` is mutable but is never reassigned.");
+                }
+            }
 
             checked
         } else {
@@ -188,14 +199,14 @@ impl Checker {
         if self
             .environment
             .borrow()
-            .declare(name.clone(), fn_type, fn_effects.clone())
+            .declare(name.clone(), fn_type, fn_effects.clone(), false)
         {
             panic!("[function declaration] function `{name}` already exists.");
         }
 
         if let Some(ref expr) = expr {
             for effect in expr.effects.iter() {
-                if !fn_effects.contains(effect) {
+                if *effect != Effect::InternalState && !fn_effects.contains(effect) {
                     panic!(
                         "[effect] effect `{}` is not specified inside `@effect` annotation.",
                         effect
@@ -216,13 +227,20 @@ impl Checker {
         }
     }
 
-    fn var_decl(&mut self, name: String, expr: &Expression, ty: Option<Type>) -> CheckedStatement {
+    fn var_decl(
+        &mut self,
+        name: String,
+        expr: &Expression,
+        ty: Option<Type>,
+        is_mut: bool,
+    ) -> CheckedStatement {
         let checked = self.expression(expr, ty.clone(), true);
 
         let is_shadowed = self.environment.borrow().declare(
             name.clone(),
             ty.unwrap_or(checked.ty.clone()),
             checked.effects.clone(),
+            is_mut,
         );
 
         if is_shadowed && self.environment.borrow().enclosing().is_none() {
@@ -235,6 +253,7 @@ impl Checker {
                 name,
                 ty: checked.ty.clone(),
                 expr: checked,
+                is_mut,
             }),
         }
     }
@@ -259,16 +278,19 @@ impl Checker {
                 expr: Rc::new(ExpressionKind::Break),
                 effects: vec![],
                 ty: Type::Unit,
+                is_assignable: false,
             },
             Expression::Continue => CheckedExpression {
                 expr: Rc::new(ExpressionKind::Continue),
                 effects: vec![],
                 ty: Type::Unit,
+                is_assignable: false,
             },
             Expression::Literal(literal) => CheckedExpression {
                 effects: vec![],
                 ty: literal.get_type(),
                 expr: Rc::new(ExpressionKind::Literal(Rc::clone(literal))),
+                is_assignable: false,
             },
             Expression::Unary {
                 expr: sub_expr,
@@ -298,6 +320,7 @@ impl Checker {
                         operator: *operator,
                         expr: Rc::new(checked),
                     }),
+                    is_assignable: false,
                 }
             }
             Expression::Unary {
@@ -343,6 +366,7 @@ impl Checker {
                         operator: *operator,
                         expr: Rc::new(checked),
                     }),
+                    is_assignable: *operator == Operator::Deref,
                 }
             }
             Expression::Binary {
@@ -380,6 +404,7 @@ impl Checker {
                         operator: *operator,
                         right: Rc::new(right_checked),
                     }),
+                    is_assignable: false,
                 }
             }
             Expression::Grouping(sub_expr) => {
@@ -394,6 +419,7 @@ impl Checker {
                 CheckedExpression {
                     effects: checked.effects.clone(),
                     ty: checked.ty.clone(),
+                    is_assignable: checked.is_assignable,
                     expr: Rc::new(ExpressionKind::Grouping(Rc::new(checked))),
                 }
             }
@@ -415,6 +441,7 @@ impl Checker {
                     effects: decl.effects,
                     ty: decl.ty,
                     expr: Rc::new(ExpressionKind::Identifier(ident.to_string())),
+                    is_assignable: decl.is_mut,
                 }
             }
             Expression::Assignment {
@@ -422,6 +449,10 @@ impl Checker {
                 expr: sub_expr,
             } => {
                 let assignee = self.expression(assignee, None, false);
+
+                if !assignee.is_assignable {
+                    panic!("[assignment expression] `{assignee:?}` is not assignable")
+                }
 
                 if let Some(ref expect_type) = expect_type {
                     if expect_type != &Type::Unit {
@@ -435,11 +466,18 @@ impl Checker {
                     panic!("[cast expression] expected type mismatch")
                 }
 
+                match assignee.expr.as_ref() {
+                    ExpressionKind::Identifier(ident) => {
+                        self.environment.borrow().assigned(ident.to_string())
+                    }
+                    _ => (),
+                };
+
                 CheckedExpression {
                     effects: [
                         checked.effects.clone(),
                         assignee.effects.clone(),
-                        vec![Effect::State],
+                        vec![Effect::InternalState],
                     ]
                     .concat(),
                     ty: assignee.ty.clone(),
@@ -447,6 +485,7 @@ impl Checker {
                         assignee: Rc::new(assignee),
                         expr: Rc::new(checked),
                     }),
+                    is_assignable: false,
                 }
             }
             Expression::Call {
@@ -462,6 +501,7 @@ impl Checker {
                     }),
                     false,
                 );
+
                 let mut effects = checked.effects.clone();
 
                 let (return_type, arguments) = match checked.ty.clone() {
@@ -526,6 +566,7 @@ impl Checker {
                         expr: Rc::new(checked),
                         arguments,
                     }),
+                    is_assignable: false,
                 }
             }
             Expression::Cast { expr: sub_expr, ty } => {
@@ -551,6 +592,7 @@ impl Checker {
                         expr: Rc::new(checked),
                         ty: ty.clone(),
                     }),
+                    is_assignable: false,
                 }
             }
             Expression::Block(stmts) => {
@@ -560,6 +602,7 @@ impl Checker {
                     effects,
                     expr: Rc::new(ExpressionKind::Block(stmts)),
                     ty,
+                    is_assignable: false,
                 }
             }
             Expression::Loop(stmts) => {
@@ -569,6 +612,7 @@ impl Checker {
                     effects,
                     expr: Rc::new(ExpressionKind::Loop(stmts)),
                     ty: Type::Unit,
+                    is_assignable: false,
                 }
             }
             Expression::Conditional {
@@ -614,6 +658,7 @@ impl Checker {
                     } else {
                         body_ty
                     },
+                    is_assignable: false,
                 }
             }
         }

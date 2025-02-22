@@ -7,6 +7,8 @@ use tcast::effect::Effect;
 pub struct Declaration {
     pub ty: Type,
     pub effects: Vec<Effect>,
+    pub is_mut: bool,
+    pub num_mutations: u64,
 }
 
 #[derive(Default)]
@@ -36,11 +38,26 @@ impl Environment {
     }
 
     /// Returns `true` if the value was shadowed.
-    pub fn declare(&self, name: String, ty: Type, effects: Vec<Effect>) -> bool {
+    pub fn declare(&self, name: String, ty: Type, effects: Vec<Effect>, is_mut: bool) -> bool {
         self.declarations
             .borrow_mut()
-            .insert(name, Declaration { effects, ty })
+            .insert(
+                name,
+                Declaration {
+                    effects,
+                    ty,
+                    is_mut,
+                    num_mutations: 0,
+                },
+            )
             .is_some()
+    }
+
+    pub fn assigned(&self, name: String) {
+        self.declarations
+            .borrow_mut()
+            .entry(name)
+            .and_modify(|decl| decl.num_mutations += 1);
     }
 
     pub fn get(&self, name: &str) -> Option<Declaration> {
@@ -51,5 +68,9 @@ impl Environment {
         } else {
             None
         }
+    }
+
+    pub fn get_all(&self) -> &RefCell<HashMap<String, Declaration>> {
+        &self.declarations
     }
 }
