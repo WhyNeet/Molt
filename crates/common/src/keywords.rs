@@ -11,6 +11,7 @@ pub enum Keyword {
     As,
     Mut,
     Struct,
+    Self_,
 }
 
 impl TryFrom<&str> for Keyword {
@@ -29,6 +30,7 @@ impl TryFrom<&str> for Keyword {
             "as" => Ok(Keyword::As),
             "mut" => Ok(Keyword::Mut),
             "struct" => Ok(Keyword::Struct),
+            "self" => Ok(Keyword::Self_),
             other => Err(format!("`{other}` is not a keyword.")),
         }
     }
