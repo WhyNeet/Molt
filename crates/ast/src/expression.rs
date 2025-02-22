@@ -43,4 +43,5 @@ pub enum Expression {
     Loop(Vec<Rc<Statement>>),
     Continue,
     Break,
+    Self_,
 }

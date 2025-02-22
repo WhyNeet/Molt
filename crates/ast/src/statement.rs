@@ -41,4 +41,6 @@ pub struct MethodDeclaration {
     pub parameters: Vec<(String, Type)>,
     pub expression: Rc<Expression>,
     pub return_type: Type,
+    /// `None` - no self param, `Some(false)` - `self`, `Some(true)` - `mut self`
+    pub self_param: Option<bool>,
 }
