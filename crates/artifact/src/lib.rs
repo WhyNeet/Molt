@@ -1,3 +1,5 @@
+pub mod target;
+
 use std::path::Path;
 
 use inkwell::{
@@ -86,4 +88,11 @@ pub struct BuildProfile {
     pub optimization: OptimizationLevel,
     pub reloc: RelocMode,
     pub model: CodeModel,
+}
+
+pub struct ArtifactInitializer();
+impl ArtifactInitializer {
+    pub fn init_native() -> Result<(), String> {
+        Target::initialize_native(&InitializationConfig::default())
+    }
 }
