@@ -15,6 +15,7 @@ pub enum Statement {
         expr: Rc<Expression>,
         /// If type is not specified, infer it.
         ty: Option<Type>,
+        is_mut: bool,
     },
     FunctionDeclaration {
         name: String,
