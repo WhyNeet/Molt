@@ -2,8 +2,8 @@ mod args;
 
 use std::{fs, path::Path, process};
 
-use args::{MoltCliArgs, OutputFormat};
-use artifact::BuildArtifactGenerator;
+use args::{Command, MoltCliArgs, OutputFormat};
+use artifact::{target::TargetInfo, ArtifactInitializer, BuildArtifactGenerator};
 use checker::Checker;
 use clap::{CommandFactory, Parser};
 use irgen::IrEmitter;
@@ -13,6 +13,25 @@ use lirgen::emitters::module::LirModuleEmitter;
 
 fn main() {
     let args = MoltCliArgs::parse();
+
+    ArtifactInitializer::init_native().unwrap();
+
+    if let Some(command) = args.command {
+        match command {
+            Command::Target => {
+                let target = TargetInfo::new_native();
+
+                println!("Target Triple: {}", target.triple.to_string());
+                println!("Target Name: {}", target.name);
+                println!("Target Description: {}", target.description);
+                println!("Target CPU: {}", target.cpu);
+                println!("Target Features: {}", target.features);
+            }
+        }
+
+        process::exit(0)
+    }
+
     let filename = args.filename.unwrap_or_else(|| {
         MoltCliArgs::command().print_help().unwrap();
         process::exit(0)

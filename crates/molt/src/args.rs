@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use clap::ValueEnum;
+use clap::{Subcommand, ValueEnum};
 
 #[derive(clap::Parser)]
 #[command(version, about)]
@@ -12,6 +12,9 @@ pub struct MoltCliArgs {
 
     #[arg(short, long)]
     pub output: Option<String>,
+
+    #[command(subcommand)]
+    pub command: Option<Command>,
 }
 
 #[derive(Debug, Clone, ValueEnum, PartialEq)]
@@ -21,4 +24,9 @@ pub enum OutputFormat {
     Bitcode,
     IR,
     LIR,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+pub enum Command {
+    Target,
 }
