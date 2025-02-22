@@ -9,7 +9,7 @@ pub struct Expression {
     pub expr: Rc<ExpressionKind>,
     pub effects: Vec<Effect>,
     pub ty: Type,
-    // TODO: pub is_assignable: bool
+    pub is_assignable: bool,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -47,9 +47,6 @@ pub enum ExpressionKind {
     Cast {
         expr: Rc<Expression>,
         ty: Type,
-    },
-    Ptr {
-        expr: Rc<Expression>,
     },
     Loop(Vec<Rc<Statement>>),
     Continue,

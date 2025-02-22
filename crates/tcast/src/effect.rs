@@ -6,6 +6,7 @@ pub enum Effect {
     Network,
     FileSystem,
     Concurrency,
+    InternalState,
     State,
     NonDet,
     Env,
@@ -20,7 +21,7 @@ impl TryFrom<&str> for Effect {
             "net" => Ok(Self::Network),
             "fs" => Ok(Self::FileSystem),
             "async" => Ok(Self::Concurrency),
-            "mut" => Ok(Self::State),
+            "state" => Ok(Self::State),
             "nondet" => Ok(Self::NonDet),
             other => Err(format!("`{other}` is not a valid effect.")),
         }
@@ -35,8 +36,9 @@ impl fmt::Display for Effect {
             Self::Env => "env",
             Self::FileSystem => "fs",
             Self::Network => "net",
-            Self::State => "mut",
+            Self::State => "state",
             Self::NonDet => "nondet",
+            Self::InternalState => unreachable!(),
         };
 
         write!(f, "{s}")

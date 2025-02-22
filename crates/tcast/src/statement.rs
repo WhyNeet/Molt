@@ -19,6 +19,7 @@ pub enum StatementKind {
         name: String,
         expr: Expression,
         ty: Type,
+        is_mut: bool,
     },
     FunctionDeclaration {
         name: String,
