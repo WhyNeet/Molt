@@ -1,6 +1,10 @@
 use std::rc::Rc;
 
-use ast::{annotation::Annotation, expression::Expression, statement::Statement};
+use ast::{
+    annotation::Annotation,
+    expression::Expression,
+    statement::{MethodDeclaration, Statement},
+};
 use common::{Literal, Number, Operator, Type};
 use lexer::scanner::Scanner;
 use parser::Parser;
@@ -127,6 +131,84 @@ fn extern_functions_work() {
                 return_type: Type::Int32,
                 parameters: vec![("ptr".to_string(), Type::Int8)],
             })
+        }
+    );
+}
+
+#[test]
+pub fn struct_declaration_works() {
+    let input = r#"
+        struct Config {
+            port: u16 = 8080u16;
+            host: str = "127.0.0.1";
+
+            fun get_port(self: Config) -> u16 = {
+                self.port
+            }
+
+            fun get_host(self: Config) -> str = {
+                self.host
+            }
+        }
+        "#;
+    let tokens = Scanner::tokenize(input).collect();
+
+    let tree = Parser::new(tokens).parse();
+
+    assert_eq!(
+        tree[0],
+        Statement::StructDeclaration {
+            name: "Config".to_string(),
+            fields: vec![
+                (
+                    "port".to_string(),
+                    Type::UInt16,
+                    Some(Expression::Literal(Rc::new(Literal::Number(
+                        Number::UInt16(8080)
+                    ))))
+                ),
+                (
+                    "host".to_string(),
+                    Type::Str,
+                    Some(Expression::Literal(Rc::new(Literal::Str(
+                        "127.0.0.1".to_string()
+                    ))))
+                )
+            ],
+            methods: vec![
+                (
+                    "get_port".to_string(),
+                    MethodDeclaration {
+                        return_type: Type::UInt16,
+                        parameters: vec![("self".to_string(), Type::Named("Config".to_string()))],
+                        expression: Rc::new(Expression::Block(vec![Rc::new(
+                            Statement::Expression {
+                                expr: Rc::new(Expression::MemberAccess {
+                                    expr: Rc::new(Expression::Identifier("self".to_string())),
+                                    ident: "port".to_string()
+                                }),
+                                end_semi: false
+                            }
+                        )]))
+                    }
+                ),
+                (
+                    "get_host".to_string(),
+                    MethodDeclaration {
+                        return_type: Type::Str,
+                        parameters: vec![("self".to_string(), Type::Named("Config".to_string()))],
+                        expression: Rc::new(Expression::Block(vec![Rc::new(
+                            Statement::Expression {
+                                expr: Rc::new(Expression::MemberAccess {
+                                    expr: Rc::new(Expression::Identifier("self".to_string())),
+                                    ident: "host".to_string()
+                                }),
+                                end_semi: false
+                            }
+                        )]))
+                    }
+                )
+            ]
         }
     );
 }
