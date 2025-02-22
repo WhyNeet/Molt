@@ -18,6 +18,7 @@ pub enum Statement {
         name: u64,
         expr: Rc<Expression>,
         ty: Type,
+        is_mut: bool,
     },
     StaticVariableDeclaration {
         id: u64,
@@ -43,7 +44,7 @@ pub enum Statement {
         alternative: u64,
     },
     Store {
-        id: u64,
+        id: String,
         value: Rc<StaticExpression>,
     },
     Return(Rc<StaticExpression>),

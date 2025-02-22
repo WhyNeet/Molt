@@ -92,8 +92,18 @@ impl LirRenderer {
                 self.render_static_expression(condition, f);
                 write!(f, " goto {then} else goto {alternative};").unwrap();
             }
-            Statement::VariableDeclaration { name, expr, ty } => {
-                write!(f, "let {name}: {ty} = ").unwrap();
+            Statement::VariableDeclaration {
+                name,
+                expr,
+                ty,
+                is_mut,
+            } => {
+                write!(
+                    f,
+                    "let{} {name}: {ty} = ",
+                    if *is_mut { " mut" } else { "" }
+                )
+                .unwrap();
                 self.render_expression(expr, f);
                 write!(f, ";").unwrap();
             }
@@ -110,7 +120,7 @@ impl LirRenderer {
             Statement::Store { id, value } => {
                 write!(f, "store ").unwrap();
                 self.render_static_expression(value, f);
-                write!(f, " in {id};").unwrap();
+                write!(f, " in `{id}`;").unwrap();
             }
         }
     }
@@ -185,7 +195,7 @@ impl LirRenderer {
     ) {
         match expression {
             StaticExpression::Identifier(ident) | StaticExpression::FnIdentifier(ident) => {
-                write!(f, "{ident}").unwrap()
+                write!(f, "`{ident}`").unwrap()
             }
             StaticExpression::Literal(literal) => self.render_literal(literal, f).unwrap(),
             StaticExpression::Ptr(expr) => {

@@ -16,6 +16,7 @@ pub enum Expression {
     Unary {
         operator: UnaryOperator,
         expr: StaticExpression,
+        /// Operand type.
         ty: Type,
     },
     MemberAccess {
