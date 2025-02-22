@@ -1,6 +1,10 @@
 use std::{mem, rc::Rc};
 
-use ast::{annotation::Annotation, expression::Expression, statement::Statement};
+use ast::{
+    annotation::Annotation,
+    expression::Expression,
+    statement::{MethodDeclaration, Statement},
+};
 use common::{
     keywords::Keyword,
     token::{Base, Literal as LiteralToken, LiteralKind, Token, TokenKind},
@@ -46,6 +50,7 @@ impl Parser {
                 Keyword::Let => self.var_decl(),
                 Keyword::Fun => self.fun_decl(),
                 Keyword::Return => self.return_stmt(),
+                Keyword::Struct => self.struct_decl(),
                 _ => {
                     self.back();
                     self.expr_stmt()
@@ -59,6 +64,67 @@ impl Parser {
             self.annotated()
         } else {
             self.expr_stmt()
+        }
+    }
+
+    fn struct_decl(&mut self) -> Statement {
+        let name = self
+            .matches(TokenKind::Ident(String::new()))
+            .expect("expected struct identifier.")
+            .as_ident()
+            .unwrap()
+            .to_string();
+        self.matches(TokenKind::OpenBrace).expect("expected `{`.");
+
+        let mut methods = vec![];
+        let mut fields = vec![];
+
+        while !self.is_at_end() && self.matches(TokenKind::CloseBrace).is_none() {
+            if self
+                .matches_exact(TokenKind::Keyword(Keyword::Fun))
+                .is_some()
+            {
+                let fun_decl = self.fun_decl();
+                let (name, parameters, expression, return_type) = match fun_decl {
+                    Statement::FunctionDeclaration {
+                        name,
+                        block,
+                        return_type,
+                        parameters,
+                    } => (name, parameters, block, return_type),
+                    _ => unreachable!(),
+                };
+                let method_decl = MethodDeclaration {
+                    expression: expression.expect("methods cannot have an empty body."),
+                    parameters,
+                    return_type,
+                };
+                methods.push((name, method_decl));
+            } else {
+                let ident = self
+                    .matches(TokenKind::Ident(String::new()))
+                    .expect("expected identifier.")
+                    .as_ident()
+                    .unwrap()
+                    .to_string();
+                self.matches(TokenKind::Colon).expect("expected `:`.");
+                let ty = self.molt_type().expect("expected type.");
+
+                let initializer = if self.matches(TokenKind::Eq).is_some() {
+                    Some(self.expression())
+                } else {
+                    None
+                };
+
+                self.matches(TokenKind::Semi).expect("expected `;`.");
+                fields.push((ident, ty, initializer));
+            }
+        }
+
+        Statement::StructDeclaration {
+            name,
+            fields,
+            methods,
         }
     }
 
