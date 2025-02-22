@@ -1,6 +1,6 @@
 program = { statement } ;
 
-statement = annotated | expr_stmt | return_stmt ;
+statement = annotated | expr_stmt | return_stmt | struct_stmt ;
 
 annotated = { annotation " " } statement ;
 
@@ -17,3 +17,8 @@ annotation = "@" IDENTIFIER [ "(" [ annotation_data ] ")" ] ;
 annotation_data = IDENTIFIER { "," IDENTIFIER } ;
 
 return_stmt = "return" expression ";" ;
+
+struct_stmt = "struct" IDENTIFIER "{"
+                    { IDENTIFIER ":" type [ "=" expression ] ";"
+                        | "fun" IDENTIFIER "(" [ [ "mut" ] "self" ] [ "," parameters ] ")" [ "->" type ] "=" expression }
+                "}" ;
