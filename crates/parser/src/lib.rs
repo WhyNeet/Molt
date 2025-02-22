@@ -102,26 +102,20 @@ impl Parser {
         {
             let arg = self
                 .matches(TokenKind::Ident(String::new()))
-                .expect("expected identifier.");
+                .expect("expected identifier.")
+                .as_ident()
+                .unwrap();
 
-            let arg = match &arg.kind {
-                TokenKind::Ident(ident) => ident.to_string(),
-                _ => panic!("expected identifier."),
-            };
-
-            args.push(arg);
+            args.push(arg.to_string());
 
             while self.matches(TokenKind::Comma).is_some() {
                 let arg = self
                     .matches(TokenKind::Ident(String::new()))
-                    .expect("expected identifier.");
+                    .expect("expected identifier.")
+                    .as_ident()
+                    .unwrap();
 
-                let arg = match &arg.kind {
-                    TokenKind::Ident(ident) => ident.to_string(),
-                    _ => panic!("expected identifier."),
-                };
-
-                args.push(arg);
+                args.push(arg.to_string());
             }
 
             self.matches(TokenKind::CloseParen).expect("expected `)`.");
@@ -225,6 +219,10 @@ impl Parser {
     }
 
     fn var_decl(&mut self) -> Statement {
+        let is_mut = self
+            .matches_exact(TokenKind::Keyword(Keyword::Mut))
+            .is_some();
+
         let identifier = self
             .matches(TokenKind::Ident(String::new()))
             .expect("expected identifier.")
@@ -252,6 +250,7 @@ impl Parser {
             name: identifier,
             expr: Rc::new(expression),
             ty,
+            is_mut,
         }
     }
 

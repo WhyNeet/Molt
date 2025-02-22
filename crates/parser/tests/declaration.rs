@@ -19,7 +19,8 @@ fn variable_declaration_works() {
             expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
                 Number::Int32(1)
             )))),
-            ty: None
+            ty: None,
+            is_mut: false,
         }
     );
 }
@@ -38,7 +39,8 @@ fn variable_explicit_type_declaration_works() {
             expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
                 Number::Int32(1)
             )))),
-            ty: Some(Type::UInt8)
+            ty: Some(Type::UInt8),
+            is_mut: false
         }
     );
 }
@@ -57,7 +59,28 @@ fn variable_explicit_ptr_type_declaration_works() {
             expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
                 Number::Int32(1)
             )))),
-            ty: Some(Type::Ptr(Box::new(Type::UInt8)))
+            ty: Some(Type::Ptr(Box::new(Type::UInt8))),
+            is_mut: false
+        }
+    );
+}
+
+#[test]
+fn mutable_variable_declaration_works() {
+    let input = r#"let mut x: *u8 = 1;"#;
+    let tokens = Scanner::tokenize(input).collect();
+
+    let tree = Parser::new(tokens).parse();
+
+    assert_eq!(
+        tree[0],
+        Statement::VariableDeclaration {
+            name: "x".to_string(),
+            expr: Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                Number::Int32(1)
+            )))),
+            ty: Some(Type::Ptr(Box::new(Type::UInt8))),
+            is_mut: true
         }
     );
 }
