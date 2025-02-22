@@ -5,6 +5,7 @@ use std::{
 
 use lir::{
     expression::{Expression, StaticExpression},
+    operator::UnaryOperator,
     statement::Statement,
 };
 use tcast::statement::{Statement as CheckedStatement, StatementKind};
@@ -12,6 +13,8 @@ use tcast::statement::{Statement as CheckedStatement, StatementKind};
 use crate::builder::FunctionBuilder;
 
 use super::function::LirFunctionEmitterScope;
+
+use crate::variable_ref::VariableRef;
 
 #[derive(Debug, Default)]
 pub struct LirStatementEmitter {
@@ -55,16 +58,21 @@ impl LirStatementEmitter {
                     .upgrade()
                     .unwrap()
                     .expr_emitter
-                    .emit_into_variable(expr, None);
+                    .emit(expr);
             }
-            StatementKind::VariableDeclaration { name, expr, ty } => {
+            StatementKind::VariableDeclaration {
+                name,
+                expr,
+                ty,
+                is_mut,
+            } => {
                 let ssa_name = self
                     .scope
                     .borrow()
                     .upgrade()
                     .unwrap()
                     .expr_emitter
-                    .emit_into_variable(expr, None);
+                    .emit(expr);
                 let id = self
                     .scope
                     .borrow()
@@ -73,13 +81,41 @@ impl LirStatementEmitter {
                     .name_gen
                     .borrow_mut()
                     .generate();
+
+                let ssa_name = match ssa_name.var {
+                    VariableRef::Direct(id) => id,
+                    VariableRef::Pointer(ptr) => {
+                        let load_id = self
+                            .scope
+                            .borrow()
+                            .upgrade()
+                            .unwrap()
+                            .name_gen
+                            .borrow_mut()
+                            .generate();
+                        self.builder
+                            .push(Rc::new(Statement::StaticVariableDeclaration {
+                                id: load_id,
+                                expr: Rc::new(Expression::Unary {
+                                    operator: UnaryOperator::Deref,
+                                    expr: StaticExpression::Identifier(ptr.to_string()),
+                                    ty: expr.ty.clone(),
+                                }),
+                                ty: ty.clone(),
+                            }));
+                        load_id.to_string()
+                    }
+                    _ => unreachable!(),
+                };
+
                 let stmt = Statement::VariableDeclaration {
                     name: id,
                     expr: Rc::new(Expression::Static(
-                        Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
+                        Rc::new(StaticExpression::Identifier(ssa_name)),
                         expr.ty.clone(),
                     )),
                     ty: ty.clone(),
+                    is_mut: *is_mut,
                 };
 
                 self.scope
@@ -88,7 +124,7 @@ impl LirStatementEmitter {
                     .unwrap()
                     .environment
                     .borrow_mut()
-                    .define(name.to_string(), id);
+                    .define(name.to_string(), id, *is_mut);
 
                 self.builder.push(Rc::new(stmt));
             }
@@ -100,10 +136,35 @@ impl LirStatementEmitter {
                     .upgrade()
                     .unwrap()
                     .expr_emitter
-                    .emit_into_variable(expr, None);
+                    .emit(expr);
 
-                let ret =
-                    Statement::Return(Rc::new(StaticExpression::Identifier(ssa_name.to_string())));
+                let ssa_name = match ssa_name.var {
+                    VariableRef::Direct(id) => id,
+                    VariableRef::Pointer(ptr) => {
+                        let load_id = self
+                            .scope
+                            .borrow()
+                            .upgrade()
+                            .unwrap()
+                            .name_gen
+                            .borrow_mut()
+                            .generate();
+                        self.builder
+                            .push(Rc::new(Statement::StaticVariableDeclaration {
+                                id: load_id,
+                                expr: Rc::new(Expression::Unary {
+                                    operator: UnaryOperator::Deref,
+                                    expr: StaticExpression::Identifier(ptr.to_string()),
+                                    ty: expr.ty.clone(),
+                                }),
+                                ty: expr.ty.clone(),
+                            }));
+                        load_id.to_string()
+                    }
+                    _ => unreachable!(),
+                };
+
+                let ret = Statement::Return(Rc::new(StaticExpression::Identifier(ssa_name)));
 
                 self.builder.push(Rc::new(ret));
             }

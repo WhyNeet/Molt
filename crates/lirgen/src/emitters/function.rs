@@ -15,6 +15,8 @@ use super::{
     expression::LirExpressionEmitter, module::LirModuleEmitterScope, statement::LirStatementEmitter,
 };
 
+use crate::variable_ref::VariableRef;
+
 #[derive(Debug, Default)]
 pub struct LirFunctionEmitterScope {
     pub(crate) expr_emitter: LirExpressionEmitter,
@@ -90,7 +92,7 @@ impl LirFunctionEmitter {
             .into_iter()
             .map(|(name, ty)| {
                 let id = self.scope.name_gen.borrow_mut().generate();
-                self.scope.environment.borrow_mut().define(name, id);
+                self.scope.environment.borrow_mut().define(name, id, false);
 
                 (id, ty)
             })
@@ -101,12 +103,11 @@ impl LirFunctionEmitter {
 
         let produces_value = block.ty != Type::Unit;
 
-        let ssa_name = if produces_value {
-            let name = self.scope.expr_emitter.emit_into_variable(&block, None);
-            Some(name)
-        } else {
-            self.scope.expr_emitter.emit(&block);
-            None
+        let ssa_name = self.scope.expr_emitter.emit(&block);
+
+        let ssa_name = match ssa_name.var {
+            VariableRef::Pointer(id) | VariableRef::Direct(id) => Some(id),
+            _ => None,
         };
 
         let ret = if let Some(ssa_name) = ssa_name {

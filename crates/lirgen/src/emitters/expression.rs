@@ -3,6 +3,7 @@ use std::{
     rc::{Rc, Weak},
 };
 
+use common::Type;
 use lir::{
     expression::{Expression, StaticExpression},
     operator::{BinaryOperator, UnaryOperator},
@@ -13,9 +14,15 @@ use tcast::{
     statement::{Statement as CheckedStatement, StatementKind},
 };
 
-use crate::{builder::FunctionBuilder, variable::LirVariable};
+use crate::builder::FunctionBuilder;
 
 use super::{function::LirFunctionEmitterScope, module::LirModuleEmitterScope};
+use crate::variable_ref::VariableRef;
+
+pub struct LoweringResult {
+    pub(crate) var: VariableRef,
+    pub(crate) ty: Type,
+}
 
 #[derive(Debug)]
 pub enum LirExpressionContext {
@@ -57,90 +64,128 @@ impl LirExpressionEmitter {
 }
 
 impl LirExpressionEmitter {
-    /// Returns the identifier for a new temporary variable.
-    pub fn emit_into_variable(
-        &self,
-        expr: &CheckedExpression,
-        variable: Option<LirVariable>,
-    ) -> u64 {
-        let name = self
-            .scope
-            .borrow()
-            .upgrade()
-            .unwrap()
-            .name_gen
-            .borrow_mut()
-            .generate();
-
-        let var = if let Some(var) = variable {
-            var
-        } else {
-            LirVariable::new(name, expr.ty.clone())
-        };
-        self.lower_expr(expr, Some(&var));
-
-        let (var_name, expr, ty) = var.take();
-
-        if let Some(expr) = expr {
-            let ssa = Statement::StaticVariableDeclaration { id: name, expr, ty };
-
-            self.builder.push(Rc::new(ssa));
-        }
-
-        var_name
+    pub fn emit(&self, expr: &CheckedExpression) -> LoweringResult {
+        self.lower_expr(expr)
     }
 
-    pub fn emit(&self, expr: &CheckedExpression) {
-        self.lower_expr(expr, None);
-    }
-
-    fn lower_expr(&self, expr: &CheckedExpression, store_in: Option<&LirVariable>) {
+    fn lower_expr(&self, expr: &CheckedExpression) -> LoweringResult {
         match expr.expr.as_ref() {
             ExpressionKind::Literal(literal) => {
-                let expr = Expression::Static(
-                    Rc::new(StaticExpression::Literal(Rc::clone(literal))),
-                    expr.ty.clone(),
-                );
+                let id = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .name_gen
+                    .borrow_mut()
+                    .generate();
 
-                if let Some(variable) = store_in {
-                    variable.store(Rc::new(expr));
+                self.builder
+                    .push(Rc::new(Statement::StaticVariableDeclaration {
+                        id,
+                        expr: Rc::new(Expression::Static(
+                            Rc::new(StaticExpression::Literal(Rc::clone(literal))),
+                            expr.ty.clone(),
+                        )),
+                        ty: expr.ty.clone(),
+                    }));
+
+                LoweringResult {
+                    var: VariableRef::Direct(id.to_string()),
+                    ty: expr.ty.clone(),
                 }
             }
-            ExpressionKind::Ptr { expr: ptr_expr } => {
-                let ssa_id = self.emit_into_variable(ptr_expr, None);
-
-                if let Some(variable) = store_in {
-                    variable.store(Rc::new(Expression::Static(
-                        Rc::new(StaticExpression::Ptr(Rc::new(
-                            StaticExpression::Identifier(ssa_id.to_string()),
-                        ))),
-                        expr.ty.clone(),
-                    )));
-                }
-            }
-            ExpressionKind::Block(stmts) => {
-                self.lower_block(stmts, store_in);
-            }
+            ExpressionKind::Block(stmts) => self.lower_block(stmts),
             ExpressionKind::Binary {
                 left,
                 operator,
                 right,
             } => {
-                let left_ssa_name = self.emit_into_variable(left, None);
-                let right_ssa_name = self.emit_into_variable(right, None);
+                let left_result = self.lower_expr(left);
+                let right_result = self.lower_expr(right);
 
-                if let Some(variable) = store_in {
-                    variable.store(Rc::new(Expression::Binary {
-                        left: StaticExpression::Identifier(left_ssa_name.to_string()),
-                        operator: BinaryOperator::from(operator),
-                        right: StaticExpression::Identifier(right_ssa_name.to_string()),
-                        operand_ty: left.ty.clone(),
+                // Load values if they're pointers
+                let left_val = match left_result.var {
+                    VariableRef::Direct(id) => id,
+                    VariableRef::Pointer(ptr) => {
+                        let load_id = self
+                            .scope
+                            .borrow()
+                            .upgrade()
+                            .unwrap()
+                            .name_gen
+                            .borrow_mut()
+                            .generate();
+                        self.builder
+                            .push(Rc::new(Statement::StaticVariableDeclaration {
+                                id: load_id,
+                                expr: Rc::new(Expression::Unary {
+                                    operator: UnaryOperator::Deref,
+                                    expr: StaticExpression::Identifier(ptr.to_string()),
+                                    ty: left.ty.clone(),
+                                }),
+                                ty: left_result.ty,
+                            }));
+                        load_id.to_string()
+                    }
+                    _ => unreachable!(),
+                };
+
+                let right_val = match right_result.var {
+                    VariableRef::Direct(id) => id,
+                    VariableRef::Pointer(ptr) => {
+                        let load_id = self
+                            .scope
+                            .borrow()
+                            .upgrade()
+                            .unwrap()
+                            .name_gen
+                            .borrow_mut()
+                            .generate();
+                        self.builder
+                            .push(Rc::new(Statement::StaticVariableDeclaration {
+                                id: load_id,
+                                expr: Rc::new(Expression::Unary {
+                                    operator: UnaryOperator::Deref,
+                                    expr: StaticExpression::Identifier(ptr.to_string()),
+                                    ty: right.ty.clone(),
+                                }),
+                                ty: right_result.ty,
+                            }));
+                        load_id.to_string()
+                    }
+                    _ => unreachable!(),
+                };
+
+                let result_id = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .name_gen
+                    .borrow_mut()
+                    .generate();
+
+                self.builder
+                    .push(Rc::new(Statement::StaticVariableDeclaration {
+                        id: result_id,
+                        expr: Rc::new(Expression::Binary {
+                            left: StaticExpression::Identifier(left_val.to_string()),
+                            operator: BinaryOperator::from(operator),
+                            right: StaticExpression::Identifier(right_val.to_string()),
+                            operand_ty: left.ty.clone(),
+                            ty: expr.ty.clone(),
+                        }),
                         ty: expr.ty.clone(),
                     }));
+
+                LoweringResult {
+                    var: VariableRef::Direct(result_id.to_string()),
+                    ty: expr.ty.clone(),
                 }
             }
             ExpressionKind::Identifier(ident) => {
-                let id = self
+                let (id, is_mut) = self
                     .scope
                     .borrow()
                     .upgrade()
@@ -148,48 +193,91 @@ impl LirExpressionEmitter {
                     .environment
                     .borrow()
                     .get(ident)
-                    .map(|id| id.to_string())
+                    .map(|(id, is_mut)| (id.to_string(), is_mut))
                     .or_else(|| {
                         if self.mod_scope.has_global(ident) {
-                            Some(ident.to_string())
+                            Some((ident.to_string(), false))
                         } else {
                             None
                         }
                     })
                     .unwrap();
-                let sub_expr = StaticExpression::Identifier(id);
 
-                if let Some(variable) = store_in {
-                    variable.store(Rc::new(Expression::Static(
-                        Rc::new(sub_expr),
-                        expr.ty.clone(),
-                    )));
+                if is_mut {
+                    LoweringResult {
+                        var: VariableRef::Pointer(id),
+                        ty: expr.ty.clone(),
+                    }
+                } else {
+                    LoweringResult {
+                        var: VariableRef::Direct(id),
+                        ty: expr.ty.clone(),
+                    }
                 }
             }
             ExpressionKind::Unary {
                 operator,
                 expr: sub_expr,
             } => {
-                let ssa_name = self.emit_into_variable(sub_expr, None);
+                let low_sub_expr = self.lower_expr(sub_expr);
 
-                let lir_expr = Expression::Unary {
-                    operator: UnaryOperator::from(operator),
-                    expr: StaticExpression::Identifier(ssa_name.to_string()),
-                    ty: sub_expr.ty.clone(),
+                let val = match low_sub_expr.var {
+                    VariableRef::Direct(id) => id,
+                    VariableRef::Pointer(ptr) => {
+                        let load_id = self
+                            .scope
+                            .borrow()
+                            .upgrade()
+                            .unwrap()
+                            .name_gen
+                            .borrow_mut()
+                            .generate();
+                        self.builder
+                            .push(Rc::new(Statement::StaticVariableDeclaration {
+                                id: load_id,
+                                expr: Rc::new(Expression::Unary {
+                                    operator: UnaryOperator::Deref,
+                                    expr: StaticExpression::Identifier(ptr.to_string()),
+                                    ty: sub_expr.ty.clone(),
+                                }),
+                                ty: low_sub_expr.ty,
+                            }));
+                        load_id.to_string()
+                    }
+                    _ => unreachable!(),
                 };
 
-                if let Some(variable) = store_in {
-                    variable.store(Rc::new(lir_expr));
+                let result_id = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .name_gen
+                    .borrow_mut()
+                    .generate();
+
+                self.builder
+                    .push(Rc::new(Statement::StaticVariableDeclaration {
+                        id: result_id,
+                        expr: Rc::new(Expression::Unary {
+                            expr: StaticExpression::Identifier(val.to_string()),
+                            operator: UnaryOperator::from(operator),
+                            ty: expr.ty.clone(),
+                        }),
+                        ty: expr.ty.clone(),
+                    }));
+
+                LoweringResult {
+                    var: VariableRef::Direct(result_id.to_string()),
+                    ty: expr.ty.clone(),
                 }
             }
             ExpressionKind::Grouping(sub_expr) => {
-                let ssa_name = self.emit_into_variable(sub_expr, None);
+                let low_sub_expr = self.lower_expr(sub_expr);
 
-                if let Some(variable) = store_in {
-                    variable.store(Rc::new(Expression::Static(
-                        Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
-                        expr.ty.clone(),
-                    )));
+                LoweringResult {
+                    var: low_sub_expr.var,
+                    ty: sub_expr.ty.clone(),
                 }
             }
             ExpressionKind::Call {
@@ -203,51 +291,132 @@ impl LirExpressionEmitter {
 
                 let fn_ident = self.mod_scope.get(fn_ident).unwrap().to_string();
 
-                let mut fn_args = vec![];
-
-                for argument in arguments {
-                    let ssa_name = self.emit_into_variable(argument, None);
-                    fn_args.push(Rc::new(Expression::Static(
-                        Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
-                        expr.ty.clone(),
+                let mut arg_vals = Vec::new();
+                for arg in arguments {
+                    let arg_result = self.lower_expr(arg);
+                    let arg_val = match arg_result.var {
+                        VariableRef::Direct(id) => id,
+                        VariableRef::Pointer(ptr) => {
+                            let load_id = self
+                                .scope
+                                .borrow()
+                                .upgrade()
+                                .unwrap()
+                                .name_gen
+                                .borrow_mut()
+                                .generate();
+                            self.builder
+                                .push(Rc::new(Statement::StaticVariableDeclaration {
+                                    id: load_id,
+                                    expr: Rc::new(Expression::Unary {
+                                        operator: UnaryOperator::Deref,
+                                        expr: StaticExpression::Identifier(ptr),
+                                        ty: sub_expr.ty.clone(),
+                                    }),
+                                    ty: arg_result.ty.clone(),
+                                }));
+                            load_id.to_string()
+                        }
+                        _ => unreachable!(),
+                    };
+                    arg_vals.push(Rc::new(Expression::Static(
+                        Rc::new(StaticExpression::Identifier(arg_val.to_string())),
+                        arg_result.ty,
                     )));
                 }
 
-                if let Some(variable) = store_in {
-                    variable.store(Rc::new(Expression::Call {
-                        expr: Rc::new(Expression::Static(
-                            Rc::new(StaticExpression::FnIdentifier(fn_ident)),
-                            sub_expr.ty.clone(),
-                        )),
-                        arguments: fn_args,
+                let result_id = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .name_gen
+                    .borrow_mut()
+                    .generate();
+
+                self.builder
+                    .push(Rc::new(Statement::StaticVariableDeclaration {
+                        id: result_id,
+                        expr: Rc::new(Expression::Call {
+                            expr: Rc::new(Expression::Static(
+                                Rc::new(StaticExpression::FnIdentifier(fn_ident)),
+                                sub_expr.ty.clone(),
+                            )),
+                            arguments: arg_vals,
+                            ty: expr.ty.clone(),
+                        }),
                         ty: expr.ty.clone(),
                     }));
+
+                LoweringResult {
+                    var: VariableRef::Direct(result_id.to_string()),
+                    ty: expr.ty.clone(),
                 }
             }
             ExpressionKind::Cast { expr, ty } => {
-                let ssa_name = self.emit_into_variable(expr, None);
+                let low_sub_expr = self.lower_expr(expr);
+
+                let val = match low_sub_expr.var {
+                    VariableRef::Direct(id) => id,
+                    VariableRef::Pointer(ptr) => {
+                        let load_id = self
+                            .scope
+                            .borrow()
+                            .upgrade()
+                            .unwrap()
+                            .name_gen
+                            .borrow_mut()
+                            .generate();
+                        self.builder
+                            .push(Rc::new(Statement::StaticVariableDeclaration {
+                                id: load_id,
+                                expr: Rc::new(Expression::Unary {
+                                    operator: UnaryOperator::Deref,
+                                    expr: StaticExpression::Identifier(ptr.to_string()),
+                                    ty: expr.ty.clone(),
+                                }),
+                                ty: low_sub_expr.ty,
+                            }));
+                        load_id.to_string()
+                    }
+                    _ => unreachable!(),
+                };
 
                 let lir_expr = if ty.is_ptr() || expr.ty == *ty {
-                    Expression::Static(
-                        Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
-                        ty.clone(),
-                    )
+                    Expression::Static(Rc::new(StaticExpression::Identifier(val)), ty.clone())
                 } else {
                     if expr.ty.numeric_bits().unwrap() > ty.numeric_bits().unwrap() {
                         Expression::Trunc {
-                            expr: Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
+                            expr: Rc::new(StaticExpression::Identifier(val)),
                             ty: ty.clone(),
                         }
                     } else {
                         Expression::Ext {
-                            expr: Rc::new(StaticExpression::Identifier(ssa_name.to_string())),
+                            expr: Rc::new(StaticExpression::Identifier(val)),
                             ty: ty.clone(),
                         }
                     }
                 };
 
-                if let Some(variable) = store_in {
-                    variable.store(Rc::new(lir_expr));
+                let result_id = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .name_gen
+                    .borrow_mut()
+                    .generate();
+
+                self.builder
+                    .push(Rc::new(Statement::StaticVariableDeclaration {
+                        id: result_id,
+                        expr: Rc::new(lir_expr),
+                        ty: expr.ty.clone(),
+                    }));
+
+                LoweringResult {
+                    var: VariableRef::Direct(result_id.to_string()),
+                    ty: expr.ty.clone(),
                 }
             }
             ExpressionKind::Conditional {
@@ -255,15 +424,49 @@ impl LirExpressionEmitter {
                 body,
                 alternative,
             } => {
-                let condition_ssa = self.emit_into_variable(condition, None);
+                let low_codition = self.lower_expr(condition);
+
+                let condition_val = match low_codition.var {
+                    VariableRef::Direct(id) | VariableRef::Pointer(id) => id,
+                    _ => unreachable!(),
+                };
+
+                let return_id = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .name_gen
+                    .borrow_mut()
+                    .generate();
+
                 let entry_block_id = self.builder.current_block_id();
                 let body_id = self.builder.append_block();
-                self.lower_block(body, store_in);
+                let body_return_val = self.lower_block(body);
+                let body_return_val = if !body_return_val.var.is_none() {
+                    match body_return_val.var {
+                        VariableRef::Direct(id) | VariableRef::Pointer(id) => Some(id),
+                        _ => unreachable!(),
+                    }
+                } else {
+                    None
+                };
+                if let Some(body_return_val) = body_return_val {
+                    self.builder
+                        .push(Rc::new(Statement::StaticVariableDeclaration {
+                            id: return_id,
+                            expr: Rc::new(Expression::Static(
+                                Rc::new(StaticExpression::Identifier(body_return_val)),
+                                expr.ty.clone(),
+                            )),
+                            ty: expr.ty.clone(),
+                        }));
+                }
 
-                let alternative_id = if let Some(stmts) = alternative {
+                let alternative = if let Some(stmts) = alternative {
                     let alternative_id = self.builder.append_block();
-                    self.lower_expr(stmts, store_in);
-                    Some(alternative_id)
+                    let alternative_return_val = self.lower_expr(stmts);
+                    Some((alternative_id, alternative_return_val))
                 } else {
                     None
                 };
@@ -274,21 +477,54 @@ impl LirExpressionEmitter {
                 self.builder
                     .push(Rc::new(Statement::Goto(after_conditional_block_id)));
 
-                if let Some(alt_id) = alternative_id {
-                    self.builder.position_at_end(alt_id);
+                let alternative_return_val = if let Some((alt_id, alt_val)) = alternative.as_ref() {
+                    self.builder.position_at_end(*alt_id);
                     self.builder
                         .push(Rc::new(Statement::Goto(after_conditional_block_id)));
+                    Some(alt_val)
+                } else {
+                    None
+                };
+
+                let alternative_return_val =
+                    if let Some(alternative_return_val) = alternative_return_val {
+                        match alternative_return_val.var {
+                            VariableRef::Direct(ref id) | VariableRef::Pointer(ref id) => {
+                                Some(id.clone())
+                            }
+                            _ => unreachable!(),
+                        }
+                    } else {
+                        None
+                    };
+                if let Some(alternative_return_val) = alternative_return_val {
+                    self.builder
+                        .push(Rc::new(Statement::StaticVariableDeclaration {
+                            id: return_id,
+                            expr: Rc::new(Expression::Static(
+                                Rc::new(StaticExpression::Identifier(alternative_return_val)),
+                                expr.ty.clone(),
+                            )),
+                            ty: expr.ty.clone(),
+                        }));
                 }
 
                 let branch = Statement::Branch {
-                    condition: Rc::new(StaticExpression::Identifier(condition_ssa.to_string())),
+                    condition: Rc::new(StaticExpression::Identifier(condition_val)),
                     then: body_id,
-                    alternative: alternative_id.unwrap_or(after_conditional_block_id),
+                    alternative: alternative
+                        .map(|(id, _)| id)
+                        .unwrap_or(after_conditional_block_id),
                 };
                 self.builder.position_at_end(entry_block_id);
                 self.builder.push(Rc::new(branch));
 
                 self.builder.position_at_end(after_conditional_block_id);
+
+                LoweringResult {
+                    var: VariableRef::Direct(return_id.to_string()),
+                    ty: expr.ty.clone(),
+                }
             }
             ExpressionKind::Loop(stmts) => {
                 let entry_block_id = self.builder.current_block_id();
@@ -303,13 +539,18 @@ impl LirExpressionEmitter {
                     exit_id: exit_block_id,
                 });
 
-                self.lower_block(stmts, None);
+                self.lower_block(stmts);
 
                 self.builder.push(Rc::new(Statement::Goto(loop_block_id)));
 
                 self.cx.replace(prev_cx);
 
                 self.builder.position_at_end(exit_block_id);
+
+                LoweringResult {
+                    var: VariableRef::None,
+                    ty: Type::Unit,
+                }
             }
             ExpressionKind::Break => {
                 let exit_block_id = match &*self.cx.borrow() {
@@ -318,6 +559,11 @@ impl LirExpressionEmitter {
                 };
                 let goto = Statement::Goto(exit_block_id);
                 self.builder.push(Rc::new(goto));
+
+                LoweringResult {
+                    var: VariableRef::None,
+                    ty: Type::Unit,
+                }
             }
             ExpressionKind::Continue => {
                 let loop_block_id = match &*self.cx.borrow() {
@@ -326,21 +572,61 @@ impl LirExpressionEmitter {
                 };
                 let goto = Statement::Goto(loop_block_id);
                 self.builder.push(Rc::new(goto));
+
+                LoweringResult {
+                    var: VariableRef::None,
+                    ty: Type::Unit,
+                }
             }
             ExpressionKind::Assignment { assignee, expr } => {
-                let assignee_ssa_id = self.emit_into_variable(assignee, None);
-                let value_ssa_id = self.emit_into_variable(expr, None);
+                let assignee = self.lower_expr(assignee);
+                let value = self.lower_expr(expr);
+
+                let val = match value.var {
+                    VariableRef::Direct(id) => id,
+                    VariableRef::Pointer(ptr) => {
+                        let load_id = self
+                            .scope
+                            .borrow()
+                            .upgrade()
+                            .unwrap()
+                            .name_gen
+                            .borrow_mut()
+                            .generate();
+                        self.builder
+                            .push(Rc::new(Statement::StaticVariableDeclaration {
+                                id: load_id,
+                                expr: Rc::new(Expression::Unary {
+                                    operator: UnaryOperator::Deref,
+                                    expr: StaticExpression::Identifier(ptr.to_string()),
+                                    ty: expr.ty.clone(),
+                                }),
+                                ty: value.ty,
+                            }));
+                        load_id.to_string()
+                    }
+                    _ => unreachable!(),
+                };
+
                 let store = Statement::Store {
-                    id: assignee_ssa_id,
-                    value: Rc::new(StaticExpression::Identifier(value_ssa_id.to_string())),
+                    id: match assignee.var {
+                        VariableRef::Direct(id) | VariableRef::Pointer(id) => id,
+                        _ => unreachable!(),
+                    },
+                    value: Rc::new(StaticExpression::Identifier(val)),
                 };
                 self.builder.push(Rc::new(store));
+
+                LoweringResult {
+                    var: VariableRef::None,
+                    ty: Type::Unit,
+                }
             }
             ExpressionKind::MemberAccess { expr, ident } => todo!(),
         }
     }
 
-    fn lower_block(&self, stmts: &Vec<Rc<CheckedStatement>>, store_in: Option<&LirVariable>) {
+    fn lower_block(&self, stmts: &Vec<Rc<CheckedStatement>>) -> LoweringResult {
         let stmt_emitter = &self.scope.borrow().upgrade().unwrap().stmt_emitter;
 
         if stmts.len() > 1 {
@@ -351,13 +637,20 @@ impl LirExpressionEmitter {
 
         if let Some(last) = stmts.last() {
             match last.stmt.as_ref() {
-                StatementKind::Expression { expr, end_semi } if !*end_semi => {
-                    self.lower_expr(expr, store_in);
-                }
+                StatementKind::Expression { expr, end_semi } if !*end_semi => self.lower_expr(expr),
                 _ => {
                     stmt_emitter.emit(last);
+                    LoweringResult {
+                        var: VariableRef::None,
+                        ty: Type::Unit,
+                    }
                 }
             }
-        };
+        } else {
+            LoweringResult {
+                var: VariableRef::None,
+                ty: Type::Unit,
+            }
+        }
     }
 }

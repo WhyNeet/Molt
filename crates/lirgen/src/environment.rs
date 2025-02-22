@@ -3,7 +3,8 @@ use std::{collections::HashMap, rc::Rc};
 #[derive(Debug, Default)]
 pub struct Environment {
     enclosing: Option<Rc<Environment>>,
-    mapping: HashMap<String, u64>,
+    // original name -> (id, is_mut)
+    mapping: HashMap<String, (u64, bool)>,
 }
 
 impl Environment {
@@ -18,11 +19,11 @@ impl Environment {
         }
     }
 
-    pub fn define(&mut self, name: String, id: u64) {
-        self.mapping.insert(name, id);
+    pub fn define(&mut self, name: String, id: u64, is_mut: bool) {
+        self.mapping.insert(name, (id, is_mut));
     }
 
-    pub fn get(&self, name: &str) -> Option<u64> {
+    pub fn get(&self, name: &str) -> Option<(u64, bool)> {
         if let Some(id) = self.mapping.get(name) {
             Some(*id)
         } else if let Some(ref enclosing) = self.enclosing {

@@ -4,18 +4,14 @@ use std::{
     rc::Rc,
 };
 
-use lir::{
-    expression::{Expression, StaticExpression},
-    module::LirModule,
-    statement::Statement,
-};
+use lir::{expression::StaticExpression, module::LirModule, statement::Statement};
 use tcast::{
     expression::ExpressionKind,
     fn_attribute::FunctionAttribute,
     statement::{Statement as CheckedStatement, StatementKind},
 };
 
-use crate::{environment::Environment, var_name_gen::VariableNameGenerator};
+use crate::environment::Environment;
 
 use super::function::LirFunctionEmitter;
 
@@ -102,7 +98,7 @@ impl LirModuleEmitter {
 
                     func
                 }
-                StatementKind::VariableDeclaration { name, expr, ty } => {
+                StatementKind::VariableDeclaration { name, expr, ty, .. } => {
                     let expr = match expr.expr.as_ref() {
                         ExpressionKind::Literal(lit) => StaticExpression::Literal(Rc::clone(lit)),
                         other => panic!("`{other:?}` global expressions are not supported."),
