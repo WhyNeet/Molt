@@ -84,20 +84,38 @@ impl Parser {
                 .matches_exact(TokenKind::Keyword(Keyword::Fun))
                 .is_some()
             {
-                let fun_decl = self.fun_decl();
-                let (name, parameters, expression, return_type) = match fun_decl {
-                    Statement::FunctionDeclaration {
-                        name,
-                        block,
-                        return_type,
-                        parameters,
-                    } => (name, parameters, block, return_type),
-                    _ => unreachable!(),
+                let name = self
+                    .matches(TokenKind::Ident(String::new()))
+                    .expect("expected method identifier.")
+                    .as_ident()
+                    .unwrap()
+                    .to_string();
+                self.matches(TokenKind::OpenParen).expect("expected `(`.");
+
+                let self_param = if self.matches(TokenKind::Keyword(Keyword::Self_)).is_some() {
+                    self.matches(TokenKind::Comma);
+                    Some(false)
+                } else {
+                    None
                 };
+
+                let parameters = self.parameters();
+
+                let return_type = if self.matches(TokenKind::RArrow).is_some() {
+                    self.molt_type().expect("expected type after `->`")
+                } else {
+                    Type::Unit
+                };
+
+                self.matches(TokenKind::Eq).expect("expected `=`.");
+
+                let expression = self.expression();
+
                 let method_decl = MethodDeclaration {
-                    expression: expression.expect("methods cannot have an empty body."),
+                    expression: Rc::new(expression),
                     parameters,
                     return_type,
+                    self_param,
                 };
                 methods.push((name, method_decl));
             } else {
@@ -607,6 +625,7 @@ impl Parser {
                 Keyword::Loop => self.loop_expr(),
                 Keyword::Break => Expression::Break,
                 Keyword::Continue => Expression::Continue,
+                Keyword::Self_ => Expression::Self_,
                 other => todo!("{other:?}"),
             }
         } else {
