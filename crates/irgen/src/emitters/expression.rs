@@ -276,7 +276,7 @@ impl<'a> IrExpressionEmitter<'a> {
                             .build_load(expr.1.get_type(), expr.1.into_pointer_value(), name)
                             .unwrap()
                             .as_basic_value_enum(),
-                        _ => todo!(),
+                        _ => unreachable!(),
                     };
 
                     Some((expr.0, res))

@@ -19,11 +19,12 @@ use super::{module::ModuleEmitterScope, statement::IrStatementEmitter};
 pub struct VariableData<'a> {
     pub(crate) ty: BasicTypeEnum<'a>,
     pub(crate) value: BasicValueEnum<'a>,
+    pub(crate) is_mut: bool,
 }
 
 impl<'a> VariableData<'a> {
-    pub fn new(ty: BasicTypeEnum<'a>, value: BasicValueEnum<'a>) -> Self {
-        Self { ty, value }
+    pub fn new(ty: BasicTypeEnum<'a>, value: BasicValueEnum<'a>, is_mut: bool) -> Self {
+        Self { ty, value, is_mut }
     }
 }
 
@@ -266,6 +267,7 @@ impl<'a> IrFunctionEmitter<'a> {
                 VariableData {
                     ty: *ty,
                     value: function.get_params()[id],
+                    is_mut: false,
                 },
             );
         }
