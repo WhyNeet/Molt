@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
 use common::Type;
 
@@ -28,4 +28,17 @@ pub enum Statement {
         stmt: Rc<Statement>,
     },
     Return(Rc<Expression>),
+    StructDeclaration {
+        name: String,
+        /// Field name, field type, optional default initializer
+        fields: Vec<(String, Type, Option<Expression>)>,
+        methods: Vec<(String, MethodDeclaration)>,
+    },
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct MethodDeclaration {
+    pub parameters: Vec<(String, Type)>,
+    pub expression: Rc<Expression>,
+    pub return_type: Type,
 }
