@@ -3,7 +3,11 @@ pub mod environment;
 
 use std::{cell::RefCell, mem, rc::Rc};
 
-use ast::{annotation::Annotation, expression::Expression, statement::Statement};
+use ast::{
+    annotation::Annotation,
+    expression::Expression,
+    statement::{MethodDeclaration, Statement},
+};
 use common::{Operator, Type, Typed};
 use context::Context;
 use environment::Environment;
@@ -11,7 +15,9 @@ use tcast::{
     effect::Effect,
     expression::{Expression as CheckedExpression, ExpressionKind},
     fn_attribute::FunctionAttribute,
-    statement::{Statement as CheckedStatement, StatementKind},
+    statement::{
+        MethodDeclaration as CheckedMethodDeclaration, Statement as CheckedStatement, StatementKind,
+    },
 };
 
 fn type_cmp(ty: &Type, expect: &Type, exact: bool) -> bool {
@@ -78,6 +84,105 @@ impl Checker {
             } => self.var_decl(name.to_string(), expr, ty.clone(), *is_mut),
             Statement::Expression { expr, end_semi } => self.expression_stmt(expr, *end_semi),
             Statement::Return(expr) => self.return_stmt(expr),
+            Statement::StructDeclaration {
+                name,
+                fields,
+                methods,
+            } => self.struct_decl(name.to_string(), fields, methods),
+        }
+    }
+
+    fn struct_decl(
+        &mut self,
+        name: String,
+        fields: &Vec<(String, Type, Option<Expression>)>,
+        methods: &Vec<(String, MethodDeclaration)>,
+    ) -> CheckedStatement {
+        let struct_ty = Type::Struct {
+            fields: fields
+                .iter()
+                .map(|(name, ty, _)| (name.clone(), ty.clone()))
+                .collect(),
+            methods: methods
+                .iter()
+                .cloned()
+                .map(|(name, decl)| {
+                    (
+                        name,
+                        Type::Callable {
+                            parameters: decl.parameters.iter().map(|(_, ty)| ty.clone()).collect(),
+                            return_type: Box::new(decl.return_type.clone()),
+                            var_args: false,
+                        },
+                    )
+                })
+                .collect(),
+        };
+
+        self.environment
+            .borrow()
+            .declare(name.clone(), struct_ty, vec![], false);
+
+        let struct_env = Environment::with_enclosing(Rc::clone(&*self.environment.borrow()));
+        let prev_env = self.environment.replace(Rc::new(struct_env));
+
+        let mut checked_fields = vec![];
+
+        for (name, ty, initializer) in fields {
+            let checked_initializer = if let Some(initializer) = initializer {
+                Some(self.expression(initializer, Some(ty.clone()), true))
+            } else {
+                None
+            };
+            self.environment.borrow().declare(
+                name.to_string(),
+                ty.clone(),
+                checked_initializer
+                    .as_ref()
+                    .map(|ini| ini.effects.clone())
+                    .unwrap_or(vec![]),
+                false,
+            );
+
+            checked_fields.push((name.to_string(), ty.clone(), checked_initializer));
+        }
+
+        let mut checked_methods = vec![];
+
+        for (name, decl) in methods {
+            let fn_type = Type::Callable {
+                parameters: decl.parameters.iter().cloned().map(|(_, ty)| ty).collect(),
+                return_type: Box::new(decl.return_type.clone()),
+                var_args: false,
+            };
+
+            self.environment
+                .borrow()
+                .declare(name.to_string(), fn_type, vec![], false);
+
+            let checked_expr =
+                self.expression(&decl.expression, Some(decl.return_type.clone()), true);
+
+            checked_methods.push((
+                name.to_string(),
+                CheckedMethodDeclaration {
+                    self_param: decl.self_param,
+                    expression: Rc::new(checked_expr),
+                    return_type: decl.return_type.clone(),
+                    parameters: decl.parameters.clone(),
+                },
+            ));
+        }
+
+        self.environment.replace(prev_env);
+
+        CheckedStatement {
+            effects: vec![],
+            stmt: Rc::new(StatementKind::StructDeclaration {
+                name,
+                fields: checked_fields,
+                methods: checked_methods,
+            }),
         }
     }
 
@@ -659,6 +764,28 @@ impl Checker {
                         body_ty
                     },
                     is_assignable: false,
+                }
+            }
+            Expression::Self_ => {
+                let (struct_name, _) = match self.context.as_ref().unwrap() {
+                    Context::Method {
+                        struct_name,
+                        return_type,
+                    } => (struct_name, return_type),
+                    _ => panic!("`self` cannot be used outside of struct methods."),
+                };
+
+                CheckedExpression {
+                    effects: vec![],
+                    is_assignable: false,
+                    ty: self
+                        .environment
+                        .borrow()
+                        .get(struct_name)
+                        .unwrap()
+                        .ty
+                        .clone(),
+                    expr: Rc::new(ExpressionKind::Self_),
                 }
             }
         }
