@@ -29,4 +29,19 @@ pub enum StatementKind {
         attributes: Vec<FunctionAttribute>,
     },
     Return(Rc<Expression>),
+    StructDeclaration {
+        name: String,
+        /// Field name, field type, optional default initializer
+        fields: Vec<(String, Type, Option<Expression>)>,
+        methods: Vec<(String, MethodDeclaration)>,
+    },
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct MethodDeclaration {
+    pub parameters: Vec<(String, Type)>,
+    pub expression: Rc<Expression>,
+    pub return_type: Type,
+    /// `None` - no self param, `Some(false)` - `self`, `Some(true)` - `mut self`
+    pub self_param: Option<bool>,
 }

@@ -51,4 +51,5 @@ pub enum ExpressionKind {
     Loop(Vec<Rc<Statement>>),
     Continue,
     Break,
+    Self_,
 }
