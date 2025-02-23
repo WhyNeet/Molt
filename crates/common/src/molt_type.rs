@@ -23,6 +23,10 @@ pub enum Type {
     Unit,
     NoReturn,
     Ptr(Box<Type>),
+    Struct {
+        fields: Vec<(String, Type)>,
+        methods: Vec<(String, Type)>,
+    },
     Named(String),
 }
 
@@ -59,7 +63,21 @@ impl fmt::Display for Type {
             Type::Unit => write!(f, "unit"),
             Type::NoReturn => unreachable!(),
             Type::Ptr(ty) => write!(f, "*{ty}"),
-            Type::Named(name) => write!(f, "{name}"),
+            Type::Struct { fields, methods } => {
+                write!(f, "struct {{ ")?;
+                for (name, ty) in fields {
+                    write!(f, "{name}: {ty};\n")?;
+                }
+
+                write!(f, "\n")?;
+
+                for (name, decl) in methods {
+                    write!(f, "fun {name}: {decl}")?;
+                }
+
+                Ok(())
+            }
+            Type::Named(_) => unreachable!(),
         }
     }
 }
