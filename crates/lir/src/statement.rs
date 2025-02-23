@@ -48,4 +48,16 @@ pub enum Statement {
         value: Rc<StaticExpression>,
     },
     Return(Rc<StaticExpression>),
+    StructDeclaration {
+        name: String,
+        fields: Vec<(String, Type)>,
+        methods: Vec<(String, MethodDeclaration)>,
+    },
+}
+
+#[derive(Debug)]
+pub struct MethodDeclaration {
+    pub blocks: Vec<BasicBlock>,
+    pub return_type: Type,
+    pub parameters: Vec<(String, Type)>,
 }

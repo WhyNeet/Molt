@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use common::Literal;
+use common::{Literal, Type};
 
 use crate::{
     expression::{Expression, StaticExpression},
@@ -50,7 +50,6 @@ impl LirRenderer {
                 for block in blocks {
                     let (idx, block) = (block.0, block.1.borrow());
                     write!(f, "{idx}:\n").unwrap();
-                    self.scope += 1;
                     self.render_block(&block, f);
                 }
 
@@ -68,13 +67,7 @@ impl LirRenderer {
                     if *is_var_args { "vararg " } else { "" }
                 )
                 .unwrap();
-                if !parameters.is_empty() {
-                    for (name, ty) in parameters[..(parameters.len() - 1)].iter() {
-                        write!(f, "{name}: {ty}, ").unwrap();
-                    }
-                    let last = parameters.last().unwrap();
-                    write!(f, "{}: {}", last.0, last.1).unwrap();
-                }
+                self.render_parameters(parameters, f).unwrap();
                 write!(f, ") -> {return_type};\n").unwrap();
             }
             Statement::Goto(id) => write!(f, "goto {id};").unwrap(),
@@ -122,20 +115,82 @@ impl LirRenderer {
                 self.render_static_expression(value, f);
                 write!(f, " in `{id}`;").unwrap();
             }
+            Statement::StructDeclaration {
+                name,
+                fields,
+                methods,
+            } => {
+                self.scope += 1;
+
+                write!(f, "struct {name} {{\n").unwrap();
+                for (name, ty) in fields {
+                    write!(
+                        f,
+                        "{}{name}: {ty};\n",
+                        (0..self.scope).map(|_| "  ").collect::<String>()
+                    )
+                    .unwrap();
+                }
+
+                write!(f, "\n").unwrap();
+
+                for (name, decl) in methods {
+                    write!(
+                        f,
+                        "{}fun {name}(",
+                        (0..self.scope).map(|_| "  ").collect::<String>()
+                    )
+                    .unwrap();
+                    self.render_parameters(&decl.parameters, f).unwrap();
+                    write!(f, ") -> {} {{\n", decl.return_type).unwrap();
+                    for block in decl.blocks.iter() {
+                        let (idx, block) = (block.0, &*block.1.borrow());
+                        write!(
+                            f,
+                            "{}{idx}:\n",
+                            (0..self.scope).map(|_| "  ").collect::<String>()
+                        )
+                        .unwrap();
+                        self.render_block(block, f);
+                    }
+                    write!(
+                        f,
+                        "{}}}\n",
+                        (0..self.scope).map(|_| "  ").collect::<String>()
+                    )
+                    .unwrap();
+                }
+
+                self.scope -= 1;
+
+                write!(f, "\n}}\n").unwrap();
+            }
         }
+    }
+
+    fn render_parameters(
+        &mut self,
+        parameters: &Vec<(String, Type)>,
+        f: &mut impl std::io::Write,
+    ) -> std::io::Result<()> {
+        if !parameters.is_empty() {
+            for (name, ty) in parameters[..(parameters.len() - 1)].iter() {
+                write!(f, "{name}: {ty}, ")?;
+            }
+            let last = parameters.last().unwrap();
+            write!(f, "{}: {}", last.0, last.1)?;
+        }
+
+        Ok(())
     }
 
     fn render_block(&mut self, block: &Vec<Rc<Statement>>, f: &mut impl std::io::Write) {
         for stmt in block {
-            if self.scope == 0 {
-                self.scope += 1;
-            }
-            write!(f, "{}", (0..=self.scope).map(|_| "  ").collect::<String>()).unwrap();
+            self.scope += 1;
+            write!(f, "{}", (0..self.scope).map(|_| "  ").collect::<String>()).unwrap();
             self.render_stmt(stmt, f);
             write!(f, "\n").unwrap();
-            if self.scope == 1 {
-                self.scope -= 1;
-            }
+            self.scope -= 1;
         }
     }
 
