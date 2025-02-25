@@ -6,7 +6,7 @@ use std::{
 use lir::{
     expression::{Expression, StaticExpression},
     operator::UnaryOperator,
-    statement::Statement,
+    statement::{MethodDeclaration, Statement},
 };
 use tcast::statement::{Statement as CheckedStatement, StatementKind};
 
@@ -59,6 +59,14 @@ impl LirStatementEmitter {
                     .unwrap()
                     .expr_emitter
                     .emit(expr);
+            }
+            StatementKind::StructDeclaration {
+                name,
+                fields,
+                methods,
+                ty,
+            } => {
+                todo!()
             }
             StatementKind::VariableDeclaration {
                 name,

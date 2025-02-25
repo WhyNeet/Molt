@@ -4,7 +4,11 @@ use std::{
     rc::Rc,
 };
 
-use lir::{expression::StaticExpression, module::LirModule, statement::Statement};
+use lir::{
+    expression::StaticExpression,
+    module::LirModule,
+    statement::{MethodDeclaration, Statement},
+};
 use tcast::{
     expression::ExpressionKind,
     fn_attribute::FunctionAttribute,
@@ -116,6 +120,62 @@ impl LirModuleEmitter {
                 }
                 StatementKind::Expression { .. } => continue,
                 StatementKind::Return(_) => unreachable!(),
+                StatementKind::StructDeclaration {
+                    name,
+                    fields,
+                    methods,
+                    ty,
+                } => {
+                    // Ignoring the default initializer for now.
+
+                    let mut lir_methods = vec![];
+
+                    for (name, decl) in methods.iter() {
+                        let self_param = if let Some(ref _self_param) = decl.self_param {
+                            vec![("self".to_string(), ty.clone())]
+                        } else {
+                            vec![]
+                        };
+                        let func = LirFunctionEmitter::new(Rc::clone(&self.scope)).emit(
+                            name.clone(),
+                            Some(decl.expression.clone()),
+                            decl.return_type.clone(),
+                            [self_param.as_slice(), decl.parameters.as_slice()].concat(),
+                            true,
+                            false,
+                        );
+
+                        let (blocks, parameters, return_type, name) = match func {
+                            Statement::FunctionDeclaration {
+                                blocks,
+                                parameters,
+                                return_type,
+                                name,
+                            } => (blocks, parameters, return_type, name),
+                            _ => unreachable!(),
+                        };
+
+                        let lir_method_decl = MethodDeclaration {
+                            return_type,
+                            parameters: parameters
+                                .into_iter()
+                                .map(|(id, ty)| (id.to_string(), ty))
+                                .collect(),
+                            blocks,
+                        };
+
+                        lir_methods.push((name, lir_method_decl));
+                    }
+
+                    Statement::StructDeclaration {
+                        name: name.clone(),
+                        fields: fields
+                            .iter()
+                            .map(|(name, ty, _)| (name.clone(), ty.clone()))
+                            .collect(),
+                        methods: lir_methods,
+                    }
+                }
             };
 
             self.stmts.borrow_mut().push(Rc::new(stmt));

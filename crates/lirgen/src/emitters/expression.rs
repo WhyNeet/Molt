@@ -95,6 +95,9 @@ impl LirExpressionEmitter {
                     ty: expr.ty.clone(),
                 }
             }
+            ExpressionKind::Self_ => {
+                todo!()
+            }
             ExpressionKind::Block(stmts) => self.lower_block(stmts),
             ExpressionKind::Binary {
                 left,
