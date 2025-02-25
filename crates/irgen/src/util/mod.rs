@@ -16,7 +16,6 @@ pub fn into_primitive_context_type<'a>(ty: &Type, cx: &'a Context) -> Option<Bas
         Type::Int64 | Type::UInt64 => Some(cx.i64_type().as_basic_type_enum()),
         Type::Char => Some(cx.i8_type().as_basic_type_enum()),
         Type::Ptr(_) => Some(cx.ptr_type(AddressSpace::default()).as_basic_type_enum()),
-        // Type::Str => Some(cx.i8_type().array_type()),
         other => None,
     }
 }

@@ -4,6 +4,7 @@ use inkwell::{
     builder::Builder,
     context::Context,
     module::Module,
+    types::{BasicType, BasicTypeEnum},
     values::{BasicValueEnum, FunctionValue},
     AddressSpace,
 };
@@ -19,6 +20,7 @@ pub struct ModuleEmitterScope<'a> {
     module: RefCell<Option<Rc<Module<'a>>>>,
     functions: RefCell<HashMap<String, FunctionValue<'a>>>,
     globals: RefCell<HashMap<String, BasicValueEnum<'a>>>,
+    structs: RefCell<HashMap<String, BasicTypeEnum<'a>>>,
 }
 
 impl<'a> ModuleEmitterScope<'a> {
@@ -64,6 +66,7 @@ impl<'a> IrModuleEmitter<'a> {
             module: RefCell::default(),
             functions: RefCell::default(),
             globals: RefCell::default(),
+            structs: RefCell::default(),
         };
 
         Self {
@@ -117,6 +120,28 @@ impl<'a> IrModuleEmitter<'a> {
                         .globals
                         .borrow_mut()
                         .insert(name.to_string(), value);
+                }
+                Statement::StructDeclaration {
+                    name,
+                    fields,
+                    methods,
+                } => {
+                    let struct_ty = self.scope().context().struct_type(
+                        fields
+                            .iter()
+                            .map(|(_, ty)| {
+                                util::into_primitive_context_type(ty, &self.scope().context())
+                                    .unwrap()
+                            })
+                            .collect::<Vec<BasicTypeEnum>>()
+                            .as_slice(),
+                        false,
+                    );
+
+                    self.scope()
+                        .structs
+                        .borrow_mut()
+                        .insert(name.clone(), struct_ty.as_basic_type_enum());
                 }
                 _ => unreachable!(),
             }

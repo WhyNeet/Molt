@@ -122,6 +122,11 @@ impl<'a> IrStatementEmitter<'a> {
             Statement::FunctionDeclaration { .. }
             | Statement::GlobalVariableDeclaration { .. }
             | Statement::ExternalFunctionDeclaration { .. } => unreachable!(),
+            Statement::StructDeclaration {
+                name,
+                fields,
+                methods,
+            } => todo!(),
         }
     }
 }

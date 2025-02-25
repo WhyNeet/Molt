@@ -160,6 +160,8 @@ impl<'a> IrFunctionEmitter<'a> {
                     var_args,
                 } => todo!(),
                 Type::NoReturn => unreachable!(),
+                Type::Struct { fields, methods } => todo!(),
+                Type::Named(_) => unreachable!(),
             },
             Some(Linkage::External),
         );
@@ -255,6 +257,8 @@ impl<'a> IrFunctionEmitter<'a> {
                     var_args,
                 } => todo!(),
                 Type::NoReturn => unreachable!(),
+                Type::Struct { fields, methods } => todo!(),
+                Type::Named(_) => unreachable!(),
             },
             None,
         );
