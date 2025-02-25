@@ -121,7 +121,7 @@ impl Checker {
 
         self.environment
             .borrow()
-            .declare(name.clone(), struct_ty, vec![], false);
+            .declare(name.clone(), struct_ty.clone(), vec![], false);
 
         let struct_env = Environment::with_enclosing(Rc::clone(&*self.environment.borrow()));
         let prev_env = self.environment.replace(Rc::new(struct_env));
@@ -182,6 +182,7 @@ impl Checker {
                 name,
                 fields: checked_fields,
                 methods: checked_methods,
+                ty: struct_ty,
             }),
         }
     }
