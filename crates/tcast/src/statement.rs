@@ -34,6 +34,7 @@ pub enum StatementKind {
         /// Field name, field type, optional default initializer
         fields: Vec<(String, Type, Option<Expression>)>,
         methods: Vec<(String, MethodDeclaration)>,
+        ty: Type,
     },
 }
 
