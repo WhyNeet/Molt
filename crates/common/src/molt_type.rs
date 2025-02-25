@@ -64,16 +64,12 @@ impl fmt::Display for Type {
             Type::NoReturn => unreachable!(),
             Type::Ptr(ty) => write!(f, "*{ty}"),
             Type::Struct { fields, methods } => {
-                write!(f, "struct {{ ")?;
-                for (name, ty) in fields {
-                    write!(f, "{name}: {ty};\n")?;
-                }
-
-                write!(f, "\n")?;
-
-                for (name, decl) in methods {
-                    write!(f, "fun {name}: {decl}")?;
-                }
+                write!(
+                    f,
+                    "struct {{ {} fields; {} methods; }}",
+                    fields.len(),
+                    methods.len()
+                )?;
 
                 Ok(())
             }
