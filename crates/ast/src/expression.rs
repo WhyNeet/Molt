@@ -44,4 +44,8 @@ pub enum Expression {
     Continue,
     Break,
     Self_,
+    StructInit {
+        name: String,
+        fields: Vec<(String, Rc<Expression>)>,
+    },
 }
