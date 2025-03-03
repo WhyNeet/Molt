@@ -267,3 +267,38 @@ fn assignment_works() {
         }
     );
 }
+
+#[test]
+fn struct_init_expression_works() {
+    let input = r#"x = Config { host = "127.0.0.1"; port = 8080u16; }"#;
+    let tokens = Scanner::tokenize(input).collect();
+
+    let tree = Parser::new(tokens).parse();
+
+    assert_eq!(
+        tree[0],
+        Statement::Expression {
+            expr: Rc::new(Expression::Assignment {
+                assignee: Rc::new(Expression::Identifier("x".to_string())),
+                expr: Rc::new(Expression::StructInit {
+                    name: "Config".to_string(),
+                    fields: vec![
+                        (
+                            "host".to_string(),
+                            Rc::new(Expression::Literal(Rc::new(Literal::Str(
+                                "127.0.0.1".to_string()
+                            ))))
+                        ),
+                        (
+                            "port".to_string(),
+                            Rc::new(Expression::Literal(Rc::new(Literal::Number(
+                                Number::UInt16(8080)
+                            ))))
+                        )
+                    ]
+                })
+            }),
+            end_semi: false
+        }
+    );
+}
