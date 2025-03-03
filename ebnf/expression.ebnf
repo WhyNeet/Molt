@@ -11,12 +11,13 @@ cast = unary { "as" type } ;
 unary = ( "!" | "-" | "&" | "*" ) unary | fn_call ;
 fn_call = member_access { "(" [ arguments ] ")" } ;
 member_access = primary { "." IDENTIFIER } ;
-primary = STRING | IDENTIFIER | NUMBER | "true" | "false" | "(" expression ")" | "(" ")" | block | conditional | break | continue | loop | ptr ;
+primary = STRING | IDENTIFIER | NUMBER | "true" | "false" | "(" expression ")" | "(" ")" | block | conditional | break | continue | loop | ptr | struct_init ;
 block = "{" expression "}" ;
 conditional = "if" expression block { "else" "if" expression block } [ "else" block ] ;
 arguments = expression { "," expression } ;
 break = "break" ;
 continue = "continue" ;
 loop = "loop" block ;
+struct_init = IDENTIFIER "{" { IDENTIFIER "=" expression ";" } "}" ;
 
 type = [ "*" ] IDENTIFIER ;
