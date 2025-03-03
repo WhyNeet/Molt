@@ -595,12 +595,28 @@ impl Parser {
 
     fn primary(&mut self) -> Expression {
         if let Some(identifier) = self.matches(TokenKind::Ident("".to_string())) {
-            let identifier = match &identifier.kind {
-                TokenKind::Ident(ident) => ident,
-                _ => unreachable!(),
-            };
+            let identifier = identifier.as_ident().unwrap().to_string();
 
-            Expression::Identifier(identifier.to_string())
+            if self.matches(TokenKind::OpenBrace).is_some() {
+                if self
+                    .peek()
+                    .map(|token| token.as_ident().is_some())
+                    .unwrap_or(false)
+                    && self
+                        .peek_nth(1)
+                        .map(|token| token.kind == TokenKind::Eq)
+                        .unwrap_or(false)
+                {
+                    // it is a struct initialization.
+                    let fields = self.fields();
+                    return Expression::StructInit {
+                        name: identifier,
+                        fields,
+                    };
+                }
+            }
+
+            Expression::Identifier(identifier)
         } else if let Some(literal) = self.matches(TokenKind::Literal(LiteralToken {
             kind: LiteralKind::Bool,
             suffix: None,
@@ -631,6 +647,25 @@ impl Parser {
         } else {
             panic!("expression expected, got: {:?}", self.peek())
         }
+    }
+
+    fn fields(&mut self) -> Vec<(String, Rc<Expression>)> {
+        let mut fields = vec![];
+
+        while self.matches(TokenKind::CloseBrace).is_none() {
+            let ident = self
+                .matches(TokenKind::Ident(String::new()))
+                .map(|token| token.as_ident().unwrap().to_string())
+                .expect("expected identifier.");
+            self.matches(TokenKind::Eq).expect("expected `=`.");
+            let expr = self.expression();
+            self.matches(TokenKind::Semi)
+                .expect("expected ';' after field expression.");
+
+            fields.push((ident, Rc::new(expr)));
+        }
+
+        fields
     }
 
     fn loop_expr(&mut self) -> Expression {
