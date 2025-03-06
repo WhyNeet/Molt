@@ -38,6 +38,9 @@ pub enum Expression {
         ty: Type,
     },
     Static(Rc<StaticExpression>, Type),
+    StructInit {
+        name: String,
+    },
 }
 
 #[derive(Debug)]

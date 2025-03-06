@@ -240,6 +240,9 @@ impl LirRenderer {
                 self.render_expression(expr, f);
                 write!(f, ".{ident}").unwrap();
             }
+            Expression::StructInit { name } => {
+                write!(f, "struct {name}").unwrap();
+            }
         }
     }
 
