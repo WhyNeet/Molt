@@ -540,7 +540,35 @@ impl Checker {
                     expr: Rc::new(ExpressionKind::Grouping(Rc::new(checked))),
                 }
             }
-            Expression::MemberAccess { .. } => todo!("member access"),
+            Expression::MemberAccess { expr, ident } => {
+                let checked = self.expression(expr, expect_type.clone(), exact);
+                let fields = match &checked.ty {
+                    Type::Struct { fields, .. } => fields,
+                    other => panic!("`{other}` does not have member fields."),
+                };
+
+                let field_ty = fields
+                    .iter()
+                    .find(|(name, _)| name == ident)
+                    .map(|(_, ty)| ty)
+                    .expect("field does not exist.");
+
+                if let Some(expect_type) = expect_type {
+                    if !type_cmp(field_ty, &expect_type, exact) {
+                        panic!("[member access expression] expected type mismatch.");
+                    }
+                }
+
+                CheckedExpression {
+                    effects: checked.effects.clone(),
+                    ty: field_ty.clone(),
+                    is_assignable: checked.is_assignable,
+                    expr: Rc::new(ExpressionKind::MemberAccess {
+                        expr: Rc::new(checked),
+                        ident: ident.to_string(),
+                    }),
+                }
+            }
             Expression::Identifier(ident) => {
                 let decl = self.environment.borrow().get(ident).expect(&format!(
                     "[identifier expression] identifier not found: `{ident}`"
@@ -817,7 +845,9 @@ impl Checker {
 
                 for (field_name, field_expr) in fields {
                     let field_expect_ty = struct_fields
-                        .get(field_name)
+                        .iter()
+                        .find(|(name, _)| name == field_name)
+                        .map(|(_, ty)| ty)
                         .expect("field does not exist.");
                     let mut checked_expr =
                         self.expression(field_expr, Some(field_expect_ty.clone()), true);
