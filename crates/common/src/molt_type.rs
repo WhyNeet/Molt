@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{collections::HashMap, fmt};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
@@ -24,8 +24,8 @@ pub enum Type {
     NoReturn,
     Ptr(Box<Type>),
     Struct {
-        fields: Vec<(String, Type)>,
-        methods: Vec<(String, Type)>,
+        fields: HashMap<String, Type>,
+        methods: HashMap<String, Type>,
     },
     Named(String),
 }
