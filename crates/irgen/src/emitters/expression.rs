@@ -397,6 +397,18 @@ impl<'a> IrExpressionEmitter<'a> {
 
                 Some((trunc_ty, res))
             }
+            Expression::StructInit { name } => {
+                let ty = self.mod_scope.get_struct(name).unwrap();
+
+                let value = self
+                    .mod_scope
+                    .builder()
+                    .build_alloca(ty, name)
+                    .unwrap()
+                    .as_basic_value_enum();
+
+                Some((ty, value))
+            }
             other => todo!("`{other:?}`"),
         }
     }

@@ -48,6 +48,10 @@ impl<'a> ModuleEmitterScope<'a> {
         self.globals.borrow().get(name).map(|val| *val)
     }
 
+    pub fn get_struct(&self, name: &str) -> Option<BasicTypeEnum<'a>> {
+        self.structs.borrow().get(name).map(|val| *val)
+    }
+
     fn init(&self) {
         *self.builder.borrow_mut() = Some(Rc::new(self.context.create_builder()));
         *self.module.borrow_mut() = Some(Rc::new(self.context.create_module("main")));
