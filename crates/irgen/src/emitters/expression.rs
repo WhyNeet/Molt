@@ -1,9 +1,9 @@
-use std::rc::Rc;
+use std::{os::macos::raw::stat, rc::Rc};
 
 use common::{Literal, Number, Type};
 use inkwell::{
     types::{BasicType, BasicTypeEnum},
-    values::{BasicMetadataValueEnum, BasicValue, BasicValueEnum},
+    values::{BasicMetadataValueEnum, BasicValue, BasicValueEnum, IntValue},
     AddressSpace,
 };
 use lir::{
@@ -409,7 +409,24 @@ impl<'a> IrExpressionEmitter<'a> {
 
                 Some((ty, value))
             }
-            other => todo!("`{other:?}`"),
+            Expression::MemberAccess { expr, id, .. } => {
+                let (ty, val) = static_emitter.emit_static_expression(expr).unwrap();
+                let value = unsafe {
+                    self.mod_scope.builder().build_gep(
+                        ty,
+                        val.into_pointer_value(),
+                        &[
+                            self.mod_scope.context().i8_type().const_int(0, false),
+                            self.mod_scope.context().i8_type().const_int(*id, false),
+                        ],
+                        &id.to_string(),
+                    )
+                }
+                .unwrap()
+                .as_basic_value_enum();
+
+                Some((ty, value))
+            } // other => todo!("`{other:?}`"),
         }
     }
 }
