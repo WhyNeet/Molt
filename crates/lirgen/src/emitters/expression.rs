@@ -98,6 +98,30 @@ impl LirExpressionEmitter {
             ExpressionKind::Self_ => {
                 todo!()
             }
+            ExpressionKind::StructInit { name, fields } => {
+                let id = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .name_gen
+                    .borrow_mut()
+                    .generate();
+
+                self.builder
+                    .push(Rc::new(Statement::StaticVariableDeclaration {
+                        id,
+                        expr: Rc::new(Expression::StructInit {
+                            name: name.to_string(),
+                        }),
+                        ty: expr.ty.clone(),
+                    }));
+
+                LoweringResult {
+                    var: VariableRef::Direct(id.to_string()),
+                    ty: expr.ty.clone(),
+                }
+            }
             ExpressionKind::Block(stmts) => self.lower_block(stmts),
             ExpressionKind::Binary {
                 left,
