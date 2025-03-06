@@ -24,8 +24,8 @@ pub enum Type {
     NoReturn,
     Ptr(Box<Type>),
     Struct {
-        fields: HashMap<String, Type>,
-        methods: HashMap<String, Type>,
+        fields: Vec<(String, Type)>,
+        methods: Vec<(String, Type)>,
     },
     Named(String),
 }
