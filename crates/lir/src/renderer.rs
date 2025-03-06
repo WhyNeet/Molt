@@ -236,9 +236,9 @@ impl LirRenderer {
                 self.render_static_expression(expr, f);
                 write!(f, " to {ty}").unwrap();
             }
-            Expression::MemberAccess { expr, ident, .. } => {
-                self.render_expression(expr, f);
-                write!(f, ".{ident}").unwrap();
+            Expression::MemberAccess { expr, id, .. } => {
+                self.render_static_expression(expr, f);
+                write!(f, ".{id}").unwrap();
             }
             Expression::StructInit { name } => {
                 write!(f, "struct {name}").unwrap();

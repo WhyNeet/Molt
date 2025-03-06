@@ -20,8 +20,8 @@ pub enum Expression {
         ty: Type,
     },
     MemberAccess {
-        expr: Rc<Expression>,
-        ident: String,
+        expr: Rc<StaticExpression>,
+        id: u64,
         ty: Type,
     },
     Trunc {
