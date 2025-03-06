@@ -52,4 +52,8 @@ pub enum ExpressionKind {
     Continue,
     Break,
     Self_,
+    StructInit {
+        name: String,
+        fields: Vec<Rc<Expression>>,
+    },
 }
