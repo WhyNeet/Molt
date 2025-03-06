@@ -1,0 +1,16 @@
+struct Config {
+    port: u16 = 8080u16;
+    host: *str = &"127.0.0.1";
+
+    fun get_port(self) -> u16 = {
+        8080u16
+    }
+}
+
+@effect(io) @vararg @extern fun printf(s: *i8) -> i32;
+
+@effect(io) @main fun main() = {
+    let x = Config { port = 8080u16; host = &"127.0.0.1"; };
+
+    printf((&*x.host) as *i8);
+}
