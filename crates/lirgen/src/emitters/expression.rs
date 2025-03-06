@@ -703,7 +703,73 @@ impl LirExpressionEmitter {
                     ty: Type::Unit,
                 }
             }
-            ExpressionKind::MemberAccess { expr, ident } => todo!(),
+            ExpressionKind::MemberAccess { expr, ident } => {
+                let lowered_expr = self.lower_expr(expr);
+
+                let val = match lowered_expr.var {
+                    VariableRef::Direct(id) => id,
+                    VariableRef::Pointer(ptr) => {
+                        let load_id = self
+                            .scope
+                            .borrow()
+                            .upgrade()
+                            .unwrap()
+                            .name_gen
+                            .borrow_mut()
+                            .generate();
+                        self.builder
+                            .push(Rc::new(Statement::StaticVariableDeclaration {
+                                id: load_id,
+                                expr: Rc::new(Expression::Unary {
+                                    operator: UnaryOperator::Deref,
+                                    expr: StaticExpression::Identifier(ptr.to_string()),
+                                    ty: expr.ty.clone(),
+                                }),
+                                ty: lowered_expr.ty,
+                            }));
+                        load_id.to_string()
+                    }
+                    _ => unreachable!(),
+                };
+
+                let id = self
+                    .scope
+                    .borrow()
+                    .upgrade()
+                    .unwrap()
+                    .name_gen
+                    .borrow_mut()
+                    .generate();
+
+                let expr_fields = match &expr.ty {
+                    Type::Struct { fields, .. } => fields,
+                    _ => unreachable!(),
+                };
+
+                self.builder
+                    .push(Rc::new(Statement::StaticVariableDeclaration {
+                        id,
+                        expr: Rc::new(Expression::MemberAccess {
+                            expr: Rc::new(StaticExpression::Identifier(val)),
+                            id: expr_fields
+                                .iter()
+                                .position(|(name, _)| name == ident)
+                                .unwrap() as u64,
+                            ty: expr.ty.clone(),
+                        }),
+                        ty: expr.ty.clone(),
+                    }));
+
+                LoweringResult {
+                    var: VariableRef::Direct(id.to_string()),
+                    ty: expr_fields
+                        .iter()
+                        .find(|(name, _)| name == ident)
+                        .map(|(_, ty)| ty)
+                        .unwrap()
+                        .clone(),
+                }
+            }
         }
     }
 
