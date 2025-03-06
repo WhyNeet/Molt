@@ -117,6 +117,60 @@ impl LirExpressionEmitter {
                         ty: expr.ty.clone(),
                     }));
 
+                for (field_idx, field_expr) in fields.iter().enumerate() {
+                    let ma_id = self
+                        .scope
+                        .borrow()
+                        .upgrade()
+                        .unwrap()
+                        .name_gen
+                        .borrow_mut()
+                        .generate();
+
+                    self.builder
+                        .push(Rc::new(Statement::StaticVariableDeclaration {
+                            id: ma_id,
+                            expr: Rc::new(Expression::MemberAccess {
+                                expr: Rc::new(StaticExpression::Identifier(id.to_string())),
+                                id: field_idx as u64,
+                                ty: field_expr.ty.clone(),
+                            }),
+                            ty: field_expr.ty.clone(),
+                        }));
+
+                    let lowered_expr = self.lower_expr(&field_expr);
+                    let lowered_expr = match lowered_expr.var {
+                        VariableRef::Direct(id) => id,
+                        VariableRef::Pointer(ptr) => {
+                            let load_id = self
+                                .scope
+                                .borrow()
+                                .upgrade()
+                                .unwrap()
+                                .name_gen
+                                .borrow_mut()
+                                .generate();
+                            self.builder
+                                .push(Rc::new(Statement::StaticVariableDeclaration {
+                                    id: load_id,
+                                    expr: Rc::new(Expression::Unary {
+                                        operator: UnaryOperator::Deref,
+                                        expr: StaticExpression::Identifier(ptr.to_string()),
+                                        ty: expr.ty.clone(),
+                                    }),
+                                    ty: lowered_expr.ty,
+                                }));
+                            load_id.to_string()
+                        }
+                        _ => unreachable!(),
+                    };
+
+                    self.builder.push(Rc::new(Statement::Store {
+                        id: ma_id.to_string(),
+                        value: Rc::new(StaticExpression::Identifier(lowered_expr)),
+                    }));
+                }
+
                 LoweringResult {
                     var: VariableRef::Direct(id.to_string()),
                     ty: expr.ty.clone(),
