@@ -392,12 +392,23 @@ impl Checker {
                 ty: Type::Unit,
                 is_assignable: false,
             },
-            Expression::Literal(literal) => CheckedExpression {
-                effects: vec![],
-                ty: literal.get_type(),
-                expr: Rc::new(ExpressionKind::Literal(Rc::clone(literal))),
-                is_assignable: false,
-            },
+            Expression::Literal(literal) => {
+                if let Some(expect_type) = expect_type {
+                    if !type_cmp(&literal.get_type(), &expect_type, exact) {
+                        panic!(
+                            "[literal expression] expected `{expect_type}`, got: `{}`",
+                            literal.get_type()
+                        );
+                    }
+                }
+
+                CheckedExpression {
+                    effects: vec![],
+                    ty: literal.get_type(),
+                    expr: Rc::new(ExpressionKind::Literal(Rc::clone(literal))),
+                    is_assignable: false,
+                }
+            }
             Expression::Unary {
                 expr: sub_expr,
                 operator,
@@ -787,6 +798,41 @@ impl Checker {
                         .ty
                         .clone(),
                     expr: Rc::new(ExpressionKind::Self_),
+                }
+            }
+            Expression::StructInit { name, fields } => {
+                let struct_ty = self
+                    .environment
+                    .borrow()
+                    .get(name)
+                    .expect("struct is not declared.");
+
+                let struct_fields = match &struct_ty.ty {
+                    Type::Struct { fields, .. } => fields,
+                    _ => panic!("expected struct, got `{}`.", struct_ty.ty),
+                };
+
+                let mut effects = vec![];
+                let mut checked_fields = vec![];
+
+                for (field_name, field_expr) in fields {
+                    let field_expect_ty = struct_fields
+                        .get(field_name)
+                        .expect("field does not exist.");
+                    let mut checked_expr =
+                        self.expression(field_expr, Some(field_expect_ty.clone()), true);
+                    effects.append(&mut checked_expr.effects);
+                    checked_fields.push(Rc::new(checked_expr));
+                }
+
+                CheckedExpression {
+                    effects,
+                    expr: Rc::new(ExpressionKind::StructInit {
+                        name: name.to_string(),
+                        fields: checked_fields,
+                    }),
+                    is_assignable: false,
+                    ty: struct_ty.ty,
                 }
             }
         }
